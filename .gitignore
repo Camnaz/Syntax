@@ -1,0 +1,25 @@
+# Rust
+target/
+
+# Node
+node_modules/
+.next/
+.vercel/
+
+# Secrets — NEVER commit
+.env
+.env.local
+.env.production
+.env.*.local
+syntax-core/.env
+
+# Railway
+.railway/
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,3 @@
+[workspace]
+members = ["syntax-core"]
+resolver = "2"
