@@ -454,8 +454,8 @@ impl VerificationEngine {
                 call_cost, cumulative_cost_cents, provider);
 
             // Store response for progressive refinement on next attempt
-            if !response.text.is_empty() {
-                previous_response = Some(response.text.clone());
+            if !response.text_with_citations().is_empty() {
+                previous_response = Some(response.text_with_citations().clone());
             }
 
             // Update the attempt event with the actual provider
@@ -518,13 +518,13 @@ impl VerificationEngine {
 
             // If we only got tool calls and no text, we still need to return a trajectory with these actions so the UI can show them
             if !extracted_pending_actions.is_empty() {
-                let reasoning = if response.text.trim().is_empty() {
+                let reasoning = if response.text_with_citations().trim().is_empty() {
                     "I've prepared the following portfolio updates for you to review.".to_string()
                 } else {
                     // Try to extract reasoning if it returned a JSON projection alongside the tool call
-                    match self.parse_projection(&response.text, portfolio_id) {
+                    match self.parse_projection(&response.text_with_citations(), portfolio_id) {
                         Ok(p) => p.reasoning,
-                        Err(_) => response.text.trim().to_string(),
+                        Err(_) => response.text_with_citations().trim().to_string(),
                     }
                 };
 
@@ -553,7 +553,7 @@ impl VerificationEngine {
                 };
             }
 
-            if response.text.trim().is_empty() {
+            if response.text_with_citations().trim().is_empty() {
                 // LLM returned empty text and no valid tool calls
                 let error_msg = "LLM returned empty response without valid tool calls.".to_string();
                 tracing::warn!("{}", error_msg);
@@ -566,7 +566,7 @@ impl VerificationEngine {
             }
 
             // Parse the LLM response into a TrajectoryProjection
-            let mut projection = match self.parse_projection(&response.text, portfolio_id) {
+            let mut projection = match self.parse_projection(&response.text_with_citations(), portfolio_id) {
                 Ok(p) => p,
                 Err(e) => {
                     let error_msg = format!(
@@ -574,7 +574,7 @@ impl VerificationEngine {
                         attempt, e
                     );
                     tracing::warn!("Parse failed: {}. Response preview: {}", e, 
-                        &response.text[..response.text.len().min(200)]);
+                        &response.text_with_citations()[..response.text_with_citations().len().min(200)]);
                     let _ = tx.send(LoopEvent::Rejected {
                         attempt,
                         reason: error_msg.clone(),
