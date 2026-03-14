@@ -799,7 +799,7 @@ If the user is requesting to ADD, BUY, SELL, REMOVE, or UPDATE a specific stock 
 - Propose ONLY the exact action the user asked for.
 
 ## PATH B: Analysis & Projections (research, what-if, rebalancing analysis)
-If the user is asking for analysis, research, projections, or explicitly wants to rebalance:
+If the user is asking for analysis, research, projections, or explicitly wants to rebalance (even a simple conversational question):
 - Return ONLY valid JSON (no markdown code blocks, no text before/after):
 {{
   "proposed_allocation": [
@@ -819,8 +819,10 @@ If the user is asking for analysis, research, projections, or explicitly wants t
     "dca_monthly_amount": X,
     "suggested_sell_points": [X, X]
   }},
-  "reasoning": "Rich Markdown-formatted analysis. Use ## headings, **bold**, bullet points. Cite sources with [Name](url). Be specific and actionable. If a position appears to violate constraints, ask the user WHY rather than assuming it's wrong."
+  "reasoning": "Rich Markdown-formatted analysis. Put your entire conversational response here. Use ## headings, **bold**, bullet points. Cite sources with [Name](url). Be specific and actionable. If a position appears to violate constraints, ask the user WHY rather than assuming it's wrong."
 }}
+
+CRITICAL: EVEN FOR SIMPLE CONVERSATIONAL QUESTIONS, YOU MUST RETURN THE JSON OBJECT ABOVE. Put your conversational answer in the `reasoning` field. Do NOT return plain text.
 
 ## CRITICAL TRADE QUANTITY RULES (violations are logical errors, not just constraint failures):
 - **NEVER suggest selling more shares than the user currently owns.** Cross-check EVERY sell quantity against the exact share count in CURRENT PORTFOLIO HOLDINGS.
@@ -985,7 +987,7 @@ RULES:
             prompt.push_str("\nRefine your previous response to fix these issues. Keep what was good, fix what was wrong.\n\n");
         }
 
-        prompt.push_str("Respond with ONLY the JSON projection object.");
+        prompt.push_str("CRITICAL INSTRUCTION: You MUST respond with ONLY a valid JSON object. Do not include any introductory or concluding text. Do not wrap the JSON in markdown code blocks. The JSON must exactly match the TrajectoryProjection schema. Put your conversational answer inside the `reasoning` field of the JSON.");
         prompt
     }
 
