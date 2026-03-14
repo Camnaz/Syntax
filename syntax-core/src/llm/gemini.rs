@@ -86,7 +86,7 @@ struct GeminiFunctionCall {
 
 impl GeminiProvider {
     pub fn new(api_key: String) -> Self {
-        Self::new_with_model(api_key, "gemini-2.5-flash".to_string())
+        Self::new_with_model(api_key, "gemini-3.1-flash-lite".to_string())
     }
 
     pub fn new_with_model(api_key: String, model: String) -> Self {
