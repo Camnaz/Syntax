@@ -54,6 +54,7 @@ export interface TrajectoryProjection {
 export interface VerificationState {
   events: LoopEvent[]
   isStreaming: boolean
+  startedAt: number | null
   error: string | null
   finalProjection: TrajectoryProjection | null
   isTopicRejected: boolean
@@ -72,6 +73,7 @@ export function useSyntaxVerification() {
   const [state, setState] = useState<VerificationState>({
     events: [],
     isStreaming: false,
+    startedAt: null,
     error: null,
     finalProjection: null,
     isTopicRejected: false,
@@ -94,6 +96,7 @@ export function useSyntaxVerification() {
       setState({
         events: [],
         isStreaming: true,
+        startedAt: Date.now(),
         error: null,
         finalProjection: null,
         isTopicRejected: false,
@@ -240,6 +243,7 @@ export function useSyntaxVerification() {
     setState({
       events: [],
       isStreaming: false,
+      startedAt: null,
       error: null,
       finalProjection: null,
       isTopicRejected: false,

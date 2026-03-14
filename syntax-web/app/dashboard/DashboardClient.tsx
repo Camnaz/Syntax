@@ -775,23 +775,36 @@ export default function DashboardClient() {
           ) : (
             <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 space-y-6">
               {chatHistory.map((msg, i) => (
-                <ChatBubble 
-                  key={i} 
-                  message={msg} 
-                  isStreaming={verification.isStreaming}
-                  onFollowUp={(text) => {
-                    setInquiry(text)
-                    setTimeout(() => {
-                      const form = document.querySelector('form')
-                      if (form) form.requestSubmit()
-                    }, 50)
-                  }}
-                />
+                <div
+                  key={i}
+                  className={i === chatHistory.length - 1 && !verification.isStreaming ? 'animate-[fadeSlideIn_0.25s_ease-out]' : ''}
+                >
+                  <ChatBubble
+                    message={msg}
+                    isStreaming={verification.isStreaming}
+                    onFollowUp={(text) => {
+                      setInquiry(text)
+                      setTimeout(() => {
+                        const form = document.querySelector('form')
+                        if (form) form.requestSubmit()
+                      }, 50)
+                    }}
+                  />
+                </div>
               ))}
-              
+
               {verification.isStreaming && (
-                <div className="mb-8">
-                  <ThinkingProcess events={verification.events} />
+                <div className="space-y-3 animate-[fadeSlideIn_0.15s_ease-out]">
+                  {/* Placeholder SYNTAX bubble — appears instantly, replaced by real response */}
+                  <div className="flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <Zap className="h-3.5 w-3.5 text-emerald-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-zinc-500 mb-1 font-medium">SYNTAX</div>
+                      <ThinkingProcess events={verification.events} startedAt={verification.startedAt} />
+                    </div>
+                  </div>
                 </div>
               )}
               {verification.usageWarning && (
@@ -1436,18 +1449,16 @@ function ProjectionArtifact({ projection }: { projection: TrajectoryProjection }
   )
 }
 
-function ThinkingProcess({ events }: { events: LoopEvent[] }) {
+// Typical per-attempt duration in ms — derived from observed p50 latency with Gemini grounding.
+// Used for ETA estimation before any attempts have completed.
+const DEFAULT_ATTEMPT_MS = 14_000
+const MAX_LOOP_ATTEMPTS = 5
+
+function ThinkingProcess({ events, startedAt }: { events: LoopEvent[]; startedAt: number | null }) {
   const [isOpen, setIsOpen] = useState(true)
+  const [now, setNow] = useState(() => Date.now())
 
-  if (events.length === 0) {
-    return (
-      <div className="flex items-center gap-3 text-emerald-500 text-sm font-medium animate-pulse ml-12">
-        <Activity className="h-4 w-4" />
-        Initializing analysis loop...
-      </div>
-    )
-  }
-
+  // Derive loop state from events ─────────────────────────────────────────────
   type AttemptState = {
     provider: string
     status: 'running' | 'verified' | 'rejected'
@@ -1471,21 +1482,14 @@ function ThinkingProcess({ events }: { events: LoopEvent[] }) {
       if (!ev.data.is_financial) { topicRejected = true; topicReason = ev.data.reason }
     } else if (ev.event === 'Attempt') {
       const existing = attemptMap.get(ev.data.number)
-      if (!existing) {
-        attemptMap.set(ev.data.number, { provider: ev.data.provider, status: 'running' })
-      } else if (ev.data.provider !== 'pending') {
-        existing.provider = ev.data.provider
-      }
+      if (!existing) attemptMap.set(ev.data.number, { provider: ev.data.provider, status: 'running' })
+      else if (ev.data.provider !== 'pending') existing.provider = ev.data.provider
     } else if (ev.event === 'Verified') {
       const d = ev.data
       attemptMap.set(d.attempt, {
         provider: attemptMap.get(d.attempt)?.provider ?? '—',
-        status: 'verified',
-        score: d.score,
-        is_new_best: d.is_new_best,
-        sharpe: d.sharpe,
-        drawdown: d.drawdown,
-        confidence: d.confidence,
+        status: 'verified', score: d.score, is_new_best: d.is_new_best,
+        sharpe: d.sharpe, drawdown: d.drawdown, confidence: d.confidence,
       })
       if (d.score > bestScore) bestScore = d.score
     } else if (ev.event === 'Rejected') {
@@ -1502,32 +1506,107 @@ function ThinkingProcess({ events }: { events: LoopEvent[] }) {
   const isDone = isSettled || isTerminated || topicRejected
   const rows = Array.from(attemptMap.entries()).sort((a, b) => a[0] - b[0])
 
+  // Timing & ETA math ──────────────────────────────────────────────────────────
+  // Tick every 500 ms while active; stop when done to save CPU.
+  useEffect(() => {
+    if (isDone) return
+    const id = setInterval(() => setNow(Date.now()), 500)
+    return () => clearInterval(id)
+  }, [isDone])
+
+  const elapsedMs = startedAt ? now - startedAt : 0
+  const elapsedSec = Math.floor(elapsedMs / 1000)
+
+  const completedCount = rows.filter(([, a]) => a.status !== 'running').length
+  // Rolling average: use actual elapsed / completed, fall back to default
+  const avgMs = completedCount > 0 ? elapsedMs / completedCount : DEFAULT_ATTEMPT_MS
+  const estimatedTotalMs = avgMs * MAX_LOOP_ATTEMPTS
+  // Raw progress — cap at 92% so bar never reaches 100% before Settled fires
+  const rawProgress = isDone ? 1 : Math.min(elapsedMs / estimatedTotalMs, 0.92)
+  // Smooth the progress so it never looks like it's going backwards
+  const progressPct = Math.round(rawProgress * 100)
+  const etaSec = isDone ? 0 : Math.max(0, Math.ceil((estimatedTotalMs - elapsedMs) / 1000))
+
+  const isLong = !isDone && elapsedSec > 35
+
+  // Empty state ─────────────────────────────────────────────────────────────────
+  if (events.length === 0) {
+    return (
+      <div className="ml-12 max-w-xl space-y-2">
+        <div className="flex items-center gap-2 text-emerald-500 text-xs font-medium font-mono">
+          <Activity className="h-3.5 w-3.5 animate-pulse" />
+          <span>Initializing analysis loop…</span>
+          <span className="text-zinc-600 ml-auto">~{Math.round(DEFAULT_ATTEMPT_MS * MAX_LOOP_ATTEMPTS / 1000)}s est.</span>
+        </div>
+        <div className="h-0.5 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="h-full bg-emerald-500/40 rounded-full animate-pulse w-[8%]" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="ml-12 max-w-xl">
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden">
+      <div className={`bg-zinc-900/50 border rounded-lg overflow-hidden transition-colors ${isDone ? 'border-zinc-800/50' : 'border-zinc-700/60'}`}>
+
+        {/* Progress bar — full width, sits above everything */}
+        {!topicRejected && (
+          <div className="h-0.5 bg-zinc-800 w-full">
+            <div
+              className={`h-full rounded-r-full transition-all duration-700 ease-out ${
+                isDone ? 'bg-emerald-500' : isLong ? 'bg-amber-500' : 'bg-emerald-500'
+              }`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        )}
+
         {/* Header */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="w-full px-3 py-2 flex items-center justify-between hover:bg-zinc-800/30 transition-colors"
         >
           <div className="flex items-center gap-2 text-xs font-medium text-zinc-400">
-            <Zap className="h-3.5 w-3.5 text-emerald-500" />
-            <span>Auto-Research Loop</span>
+            <Zap className={`h-3.5 w-3.5 ${isDone ? 'text-emerald-500' : 'text-emerald-400'}`} />
+            <span>Verification Loop</span>
             {!isDone && <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
             {isSettled && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
+            {isTerminated && <XCircle className="h-3 w-3 text-red-400" />}
           </div>
-          <div className="flex items-center gap-3">
-            {bestScore > -Infinity && (
-              <span className="font-mono text-xs text-emerald-400">
-                best {bestScore.toFixed(4)}
+
+          <div className="flex items-center gap-3 text-xs font-mono">
+            {!isDone && (
+              <span className={`tabular-nums ${isLong ? 'text-amber-400' : 'text-zinc-500'}`}>
+                {elapsedSec < 1 ? 'starting…' : etaSec > 0 ? `~${etaSec}s left` : `${elapsedSec}s`}
               </span>
             )}
-            {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-zinc-600" /> : <ChevronRight className="h-3.5 w-3.5 text-zinc-600" />}
+            {bestScore > -Infinity && (
+              <span className="text-emerald-400">best {bestScore.toFixed(4)}</span>
+            )}
+            {isOpen
+              ? <ChevronDown className="h-3.5 w-3.5 text-zinc-600" />
+              : <ChevronRight className="h-3.5 w-3.5 text-zinc-600" />
+            }
           </div>
         </button>
 
         {isOpen && (
           <div className="border-t border-zinc-800/50 px-3 pt-2 pb-2.5 space-y-1.5 font-mono text-xs">
+
+            {/* Upfront time hint — shown before first attempt completes */}
+            {!isDone && completedCount === 0 && elapsedSec < 5 && (
+              <div className="text-zinc-600 text-[10px] pb-1">
+                Deep portfolio analysis typically takes 15–40s. Running {MAX_LOOP_ATTEMPTS} optimisation passes.
+              </div>
+            )}
+
+            {/* Long wait warning */}
+            {isLong && (
+              <div className="flex items-center gap-1.5 text-amber-500/70 text-[10px] pb-1">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                Taking longer than usual — Gemini grounding active, fetching live market data…
+              </div>
+            )}
 
             {topicRejected && (
               <div className="flex items-center gap-2 text-red-400/80">
@@ -1539,47 +1618,35 @@ function ThinkingProcess({ events }: { events: LoopEvent[] }) {
             {rows.map(([num, att]) => (
               <div
                 key={num}
-                className={`flex items-center gap-2 rounded px-2 py-1.5 ${
+                className={`flex items-center gap-2 rounded px-2 py-1.5 transition-colors ${
                   att.is_new_best
                     ? 'bg-emerald-500/10 border border-emerald-500/20'
                     : att.status === 'rejected'
                     ? 'bg-zinc-800/30'
                     : att.status === 'running'
-                    ? 'bg-blue-500/5 border border-blue-500/10'
+                    ? 'bg-blue-500/5 border border-blue-500/10 animate-pulse'
                     : 'bg-zinc-800/20'
                 }`}
               >
-                {att.status === 'running' && (
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
-                )}
-                {att.status === 'verified' && (
-                  <CheckCircle2 className={`h-3 w-3 shrink-0 ${att.is_new_best ? 'text-emerald-400' : 'text-zinc-500'}`} />
-                )}
-                {att.status === 'rejected' && (
-                  <XCircle className="h-3 w-3 shrink-0 text-yellow-500/70" />
-                )}
+                {att.status === 'running' && <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />}
+                {att.status === 'verified' && <CheckCircle2 className={`h-3 w-3 shrink-0 ${att.is_new_best ? 'text-emerald-400' : 'text-zinc-500'}`} />}
+                {att.status === 'rejected' && <XCircle className="h-3 w-3 shrink-0 text-yellow-500/70" />}
 
                 <span className="text-zinc-600 w-8 shrink-0">#{num}</span>
-                <span className="text-zinc-600 shrink-0">{att.provider !== 'pending' ? att.provider : '…'}</span>
+                <span className="text-zinc-500 shrink-0">{att.provider !== 'pending' ? att.provider : '…'}</span>
 
-                {att.status === 'running' && (
-                  <span className="text-blue-400/70 animate-pulse ml-1">generating…</span>
-                )}
-                {att.status === 'rejected' && (
-                  <span className="text-yellow-500/60 ml-1">constraint fail</span>
-                )}
+                {att.status === 'running' && <span className="text-blue-400/70 ml-1">analysing…</span>}
+                {att.status === 'rejected' && <span className="text-yellow-500/60 ml-1">constraint fail — retrying</span>}
                 {att.status === 'verified' && att.score !== undefined && (
                   <>
-                    <span className={`ml-1 font-bold ${att.is_new_best ? 'text-emerald-300' : 'text-zinc-300'}`}>
+                    <span className={`ml-1 font-bold ${att.is_new_best ? 'text-emerald-300' : 'text-zinc-400'}`}>
                       {att.score.toFixed(4)}
                     </span>
                     <span className="text-zinc-700">·</span>
                     <span className="text-zinc-500">S {att.sharpe?.toFixed(2)}</span>
                     <span className="text-zinc-500">D {((att.drawdown ?? 0) * 100).toFixed(1)}%</span>
                     <span className="text-zinc-500">C {((att.confidence ?? 0) * 100).toFixed(0)}%</span>
-                    {att.is_new_best && (
-                      <span className="ml-auto text-emerald-400 font-bold tracking-tight">↑ BEST</span>
-                    )}
+                    {att.is_new_best && <span className="ml-auto text-emerald-400 font-bold">↑ BEST</span>}
                   </>
                 )}
               </div>
@@ -1588,7 +1655,7 @@ function ThinkingProcess({ events }: { events: LoopEvent[] }) {
             {isSettled && bestScore > -Infinity && (
               <div className="flex items-center gap-2 mt-1 pt-1.5 border-t border-zinc-800/40 text-emerald-400/80">
                 <CheckCircle2 className="h-3 w-3" />
-                <span>Returned best of {settledTotal} — score {bestScore.toFixed(4)}</span>
+                <span>Best of {settledTotal} passes — score {bestScore.toFixed(4)} · {elapsedSec}s total</span>
               </div>
             )}
             {isTerminated && (
@@ -1597,11 +1664,11 @@ function ThinkingProcess({ events }: { events: LoopEvent[] }) {
                 <span>No valid projection after {settledTotal} attempts</span>
               </div>
             )}
-            {!isDone && (
-              <div className="flex items-center gap-1.5 text-zinc-700 pt-0.5 ml-1">
-                <div className="h-1 w-1 rounded-full bg-zinc-600 animate-pulse" />
-                <div className="h-1 w-1 rounded-full bg-zinc-600 animate-pulse [animation-delay:150ms]" />
-                <div className="h-1 w-1 rounded-full bg-zinc-600 animate-pulse [animation-delay:300ms]" />
+            {!isDone && rows.length === 0 && (
+              <div className="flex items-center gap-1.5 text-zinc-700 pt-0.5">
+                {[0, 150, 300].map(d => (
+                  <div key={d} className="h-1 w-1 rounded-full bg-zinc-600 animate-pulse" style={{ animationDelay: `${d}ms` }} />
+                ))}
               </div>
             )}
           </div>

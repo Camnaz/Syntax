@@ -119,6 +119,24 @@ pub const RESEARCH_LOG_PATH: &str = "research_log.txt";
 /// Global monotonic experiment counter — persists for the lifetime of the process.
 static EXPERIMENT_COUNTER: AtomicU64 = AtomicU64::new(1);
 
+/// Read the last N non-empty lines from research_log.txt for learning context.
+/// Returns empty string if file doesn't exist or is unreadable (non-fatal).
+async fn read_recent_log_entries(n: usize) -> String {
+    let content = match tokio::fs::read_to_string(RESEARCH_LOG_PATH).await {
+        Ok(s) => s,
+        Err(_) => return String::new(),
+    };
+    let lines: Vec<&str> = content
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+    let recent: Vec<&str> = lines.iter().rev().take(n).cloned().collect::<Vec<_>>();
+    if recent.is_empty() {
+        return String::new();
+    }
+    recent.into_iter().rev().collect::<Vec<_>>().join("\n")
+}
+
 async fn append_research_log(inquiry: &str, best_score: f64, best_attempt: usize, proj: &TrajectoryProjection) {
     let exp = EXPERIMENT_COUNTER.fetch_add(1, Ordering::Relaxed);
     let line = format!(
@@ -278,6 +296,9 @@ impl VerificationEngine {
         let intent = classify_inquiry_intent(inquiry);
         tracing::info!("Classified inquiry intent: {:?}", intent);
 
+        // Step 2b: Load recent successful verification patterns for self-improvement
+        let recent_learnings = read_recent_log_entries(8).await;
+
         // Step 3: Verification loop with error injection and progressive refinement
         let mut error_history: Vec<String> = Vec::new();
         let mut previous_response: Option<String> = None;
@@ -295,7 +316,7 @@ impl VerificationEngine {
                 provider: "pending".to_string(),
             }).await;
 
-            let system_prompt = self.build_system_prompt(attempt, portfolio_config.as_ref(), &intent);
+            let system_prompt = self.build_system_prompt(attempt, portfolio_config.as_ref(), &intent, &recent_learnings);
             let user_prompt = self.build_user_prompt_with_errors(
                 inquiry, 
                 portfolio_id, 
@@ -544,7 +565,7 @@ impl VerificationEngine {
         }
     }
 
-    fn build_system_prompt(&self, attempt: usize, portfolio_config: Option<&crate::db::Portfolio>, intent: &InquiryIntent) -> String {
+    fn build_system_prompt(&self, attempt: usize, portfolio_config: Option<&crate::db::Portfolio>, intent: &InquiryIntent, recent_learnings: &str) -> String {
         let max_drawdown = portfolio_config.map(|c| c.max_drawdown_limit).unwrap_or(self.constraints.max_drawdown_pct);
         let min_sharpe = portfolio_config.map(|c| c.min_sharpe_ratio).unwrap_or(self.constraints.min_sharpe_ratio);
         let max_position = portfolio_config.map(|c| c.max_position_size).unwrap_or(self.constraints.max_position_size_pct);
@@ -646,8 +667,17 @@ Hard constraints: max drawdown ≤ {:.0}%, min Sharpe ≥ {:.2}, max position �
             String::new()
         };
 
+        let learnings_block = if recent_learnings.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\nRECENT VERIFICATION PATTERNS (learn from these — what scored well and why):\n{}\n",
+                recent_learnings
+            )
+        };
+
         format!(
-            r#"You are SYNTAX — an elite AI portfolio analyst that combines real-time research with rigorous risk management. You think like a hedge fund PM, not a robo-advisor.
+            r#"You are SYNTAX — an elite AI portfolio analyst that combines real-time research with rigorous risk management. You think like a hedge fund PM, not a robo-advisor.{learnings_block}
 
 MARKET CONTEXT:
 - Current UTC Time: {time}
