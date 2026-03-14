@@ -19,6 +19,7 @@ export type LoopEvent =
   | { event: 'Error'; data: { message: string } }
   | { event: 'Slow'; data: { attempt: number; timeout_secs: number } }
   | { event: 'UsageWarning'; data: UsageWarningData }
+  | { event: 'NeedsTopup'; data: { status: string; reason: string } }
 
 export interface ScenarioChartParams {
   enabled: boolean
@@ -61,6 +62,7 @@ export interface VerificationState {
   isTopicRejected: boolean
   isTerminated: boolean
   usageWarning: UsageWarningData | null
+  needsTopup: boolean
 }
 
 export interface VerificationResult {
@@ -68,6 +70,7 @@ export interface VerificationResult {
   terminatedReason: string | null
   error: string | null
   usageWarning: UsageWarningData | null
+  needsTopup: boolean
 }
 
 export function useSyntaxVerification() {
@@ -80,6 +83,7 @@ export function useSyntaxVerification() {
     isTopicRejected: false,
     isTerminated: false,
     usageWarning: null,
+    needsTopup: false,
   })
 
   const eventSourceRef = useRef<EventSource | null>(null)
@@ -103,12 +107,14 @@ export function useSyntaxVerification() {
         isTopicRejected: false,
         isTerminated: false,
         usageWarning: null,
+        needsTopup: false,
       })
 
       let finalProjection: TrajectoryProjection | null = null
       let terminatedReason: string | null = null
       let errorMsg: string | null = null
       let usageWarning: UsageWarningData | null = null
+      let needsTopup = false
 
       try {
         const apiUrl = process.env.NEXT_PUBLIC_SYNTAX_API_URL || 'http://localhost:8080'
@@ -160,6 +166,8 @@ export function useSyntaxVerification() {
               errorMsg = event.data.message
             } else if (event.event === 'UsageWarning') {
               usageWarning = event.data
+            } else if (event.event === 'NeedsTopup') {
+              needsTopup = true
             }
 
             // Then update React state
@@ -185,6 +193,9 @@ export function useSyntaxVerification() {
                 if (event.data.warning_level === 'blocked') {
                   newState.isStreaming = false
                 }
+              } else if (event.event === 'NeedsTopup') {
+                newState.needsTopup = true
+                newState.isStreaming = false
               }
 
               return { ...prev, ...newState }
@@ -220,7 +231,7 @@ export function useSyntaxVerification() {
           }
         }
         
-        return { finalProjection, terminatedReason, error: errorMsg, usageWarning }
+        return { finalProjection, terminatedReason, error: errorMsg, usageWarning, needsTopup }
       } catch (error: any) {
         const msg = error.message || 'Verification failed'
         setState((prev) => ({
@@ -228,7 +239,7 @@ export function useSyntaxVerification() {
           error: msg,
           isStreaming: false,
         }))
-        return { finalProjection: null, terminatedReason: null, error: msg, usageWarning: null }
+        return { finalProjection: null, terminatedReason: null, error: msg, usageWarning: null, needsTopup: false }
       } finally {
         setState((prev) => ({ ...prev, isStreaming: false }))
       }
@@ -250,6 +261,7 @@ export function useSyntaxVerification() {
       isTopicRejected: false,
       isTerminated: false,
       usageWarning: null,
+      needsTopup: false,
     })
   }, [])
 
@@ -263,6 +275,7 @@ export function useSyntaxVerification() {
       isTopicRejected: false,
       isTerminated: false,
       usageWarning: null,
+      needsTopup: false,
     })
   }, [])
 

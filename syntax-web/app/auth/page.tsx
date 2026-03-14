@@ -21,9 +21,20 @@ export default function AuthPage() {
     setMessage(null)
 
     try {
+      // Admin mode: admin1/SyntaxEpoch bypasses billing for testing/demos
+      const isAdminLogin = email.trim().toLowerCase() === 'admin1' && password === 'SyntaxEpoch'
+      const effectiveEmail = isAdminLogin ? 'admin1@syntax.oleacomputer.com' : email
+
+      if (isAdminLogin) {
+        // Set admin flag before auth — dashboard reads this to bypass all billing/limits
+        localStorage.setItem('syntax_admin_mode', 'true')
+      } else {
+        localStorage.removeItem('syntax_admin_mode')
+      }
+
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
-          email,
+          email: effectiveEmail,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/dashboard`,
@@ -39,7 +50,7 @@ export default function AuthPage() {
         setIsSignUp(false)
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: effectiveEmail,
           password,
         })
 
@@ -58,7 +69,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-white flex items-center justify-center p-6">
+    <div className="min-h-screen ambient-bg text-white flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link
           href="/"
@@ -68,7 +79,7 @@ export default function AuthPage() {
           Back to home
         </Link>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8">
+        <div className="glass-panel rounded-xl p-8">
           <div className="flex items-center gap-2 mb-6">
             <Shield className="h-8 w-8 text-emerald-400" />
             <h1 className="text-2xl font-bold">SYNTAX</h1>
@@ -130,7 +141,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
+              className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-all micro-glow"
             >
               {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
             </button>

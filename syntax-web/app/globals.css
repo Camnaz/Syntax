@@ -1,35 +1,126 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   OLEA × FIDELITY DESIGN SYSTEM
+   Forest Green (#2D5A27) · Titanium (#A0A0A0) · Silver (#E5E5E5)
+   Glassmorphism · Data Serenity · WCAG 2.2 (≥4.5:1 contrast)
+   ───────────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #060806;
+  --foreground: #ededed;
+  /* Olea design tokens */
+  --olea-forest: #2D5A27;
+  --olea-titanium: #A0A0A0;
+  --olea-silver: #E5E5E5;
+  --olea-risk: #B85450;
+  --olea-risk-muted: #9E4340;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Override emerald → Forest Green (Olea palette) */
+  --color-emerald-50: #f0f7ef;
+  --color-emerald-100: #dceeda;
+  --color-emerald-200: #b8ddb5;
+  --color-emerald-300: #8ec988;
+  --color-emerald-400: #6BBF59;
+  --color-emerald-500: #5AAD4A;
+  --color-emerald-600: #2D5A27;
+  --color-emerald-700: #264E22;
+  --color-emerald-800: #1F411C;
+  --color-emerald-900: #112710;
+  --color-emerald-950: #0a1a08;
+
+  /* Olea custom colors */
+  --color-olea-forest: #2D5A27;
+  --color-olea-titanium: #A0A0A0;
+  --color-olea-silver: #E5E5E5;
+  --color-olea-risk: #B85450;
+  --color-olea-risk-muted: #9E4340;
+  --color-olea-black: #050505;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.7; /* 1.2x increase for data serenity */
+  letter-spacing: -0.01em;
   /* Prevent iOS bounce scroll on body */
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Safe-area inset utilities for iOS notch / home indicator */
+/* Ambient Light gradient — slow titanium-to-silver blend */
+.ambient-bg {
+  background: linear-gradient(
+    135deg,
+    #060806 0%,
+    #0a120a 25%,
+    #080a08 50%,
+    #0a0c0a 75%,
+    #060806 100%
+  );
+  background-size: 400% 400%;
+  animation: ambientShift 30s ease-in-out infinite;
+}
+
+@keyframes ambientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ── Glassmorphism ─────────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel {
+  background: rgba(10, 12, 10, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.glass-inner {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* ── Micro-Glow (hover effect) ─────────────────────────────────────────────── */
+.micro-glow {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.micro-glow:hover {
+  box-shadow: 0 0 20px rgba(45, 90, 39, 0.15),
+              0 0 40px rgba(45, 90, 39, 0.05);
+  border-color: rgba(45, 90, 39, 0.3);
+}
+
+.micro-glow-subtle:hover {
+  box-shadow: 0 0 12px rgba(45, 90, 39, 0.1);
+}
+
+/* ── Safe-area inset utilities for iOS notch / home indicator ──────────────── */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -48,7 +139,30 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Chat message entrance animation */
+/* ── Typography: Narrative Metrics ─────────────────────────────────────────── */
+.metric-primary {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.02em;
+}
+
+.metric-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--olea-titanium);
+}
+
+/* Financial number hierarchy */
+.num-hero { font-size: 2rem; font-weight: 700; }
+.num-primary { font-size: 1.25rem; font-weight: 600; }
+.num-secondary { font-size: 0.875rem; font-weight: 500; }
+
+/* Risk colors for financial data */
+.growth { color: var(--olea-forest); }
+.risk { color: var(--olea-risk); }
+
+/* ── Animations ────────────────────────────────────────────────────────────── */
 @keyframes fadeSlideIn {
   from {
     opacity: 0;
@@ -58,4 +172,36 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes subtleGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(45, 90, 39, 0.08); }
+  50% { box-shadow: 0 0 30px rgba(45, 90, 39, 0.15); }
+}
+
+/* ── Fluid Grid: scale from 4K to iPhone 15 Pro ───────────────────────────── */
+@media (min-width: 2560px) {
+  html { font-size: 18px; }
+}
+@media (min-width: 1920px) and (max-width: 2559px) {
+  html { font-size: 16px; }
+}
+@media (max-width: 375px) {
+  html { font-size: 14px; }
+}
+
+/* ── Scrollbar styling for data serenity ───────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(160, 160, 160, 0.3);
 }

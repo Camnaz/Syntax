@@ -275,6 +275,10 @@ pub enum LoopEvent {
         limit_cents: i32,
         message: String,
     },
+    NeedsTopup {
+        status: String,
+        reason: String,
+    },
 }
 
 #[derive(Debug)]
@@ -396,6 +400,15 @@ impl VerificationEngine {
                     r
                 }
                 Ok(Err(e)) => {
+                    // Circuit breaker: if credits exhausted, emit NeedsTopup and stop the loop
+                    if e.is_credits_exhausted() {
+                        tracing::warn!("Credits exhausted — triggering Financial Bridge: {}", e);
+                        let _ = tx.send(LoopEvent::NeedsTopup {
+                            status: "needs_topup".to_string(),
+                            reason: "credits_exhausted".to_string(),
+                        }).await;
+                        break;
+                    }
                     let error_msg = format!("LLM request failed: {}", e);
                     let _ = tx.send(LoopEvent::Error {
                         message: error_msg.clone(),

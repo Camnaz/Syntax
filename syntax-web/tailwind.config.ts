@@ -10,11 +10,25 @@ const config: Config = {
     extend: {
       colors: {
         olea: {
-          black:    "#050505",
-          titanium: "#878681",
-          silver:   "#E5E5E5",
-          green:    "#00FF41",
-          red:      "#FF3131",
+          black:      "#050505",
+          forest:     "#2D5A27",
+          titanium:   "#A0A0A0",
+          silver:     "#E5E5E5",
+          risk:       "#B85450",
+          "risk-muted": "#9E4340",
+        },
+        emerald: {
+          50:  "#f0f7ef",
+          100: "#dceeda",
+          200: "#b8ddb5",
+          300: "#8ec988",
+          400: "#6BBF59",
+          500: "#5AAD4A",
+          600: "#2D5A27",
+          700: "#264E22",
+          800: "#1F411C",
+          900: "#112710",
+          950: "#0a1a08",
         },
       },
       backgroundImage: {
@@ -24,7 +38,8 @@ const config: Config = {
         glass: "20px",
       },
       fontFamily: {
-        mono: ["Space Mono", "monospace"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["Geist Mono", "ui-monospace", "monospace"],
       },
     },
   },

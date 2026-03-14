@@ -128,6 +128,19 @@ impl LlmProvider for AnthropicProvider {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
+            // Circuit breaker: 429 (rate limit / resource exhaustion) or 400 (billing constraint)
+            if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                return Err(LlmError::CreditsExhausted(format!(
+                    "Anthropic 429 rate limit: {}", body
+                )));
+            }
+            if status == reqwest::StatusCode::BAD_REQUEST
+                && (body.contains("billing") || body.contains("credit") || body.contains("quota"))
+            {
+                return Err(LlmError::CreditsExhausted(format!(
+                    "Anthropic billing constraint: {}", body
+                )));
+            }
             return Err(LlmError::RequestFailed(format!(
                 "HTTP {}: {}",
                 status, body

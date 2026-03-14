@@ -102,13 +102,19 @@ export default function DashboardClient() {
   const [showResearchLog, setShowResearchLog] = useState(false)
   // Track which session owns the currently-running verification so it survives navigation
   const [streamingSessionId, setStreamingSessionId] = useState<string | null>(null)
+  // Admin mode: set via admin1/SyntaxEpoch login — bypasses all billing/limits
+  const [isAdminMode, setIsAdminMode] = useState(false)
+  // Financial Bridge modal — shown when backend returns NeedsTopup
+  const [showFinancialBridge, setShowFinancialBridge] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const maxFreeUses = Number(process.env.NEXT_PUBLIC_OBSERVER_FREE_VERIFICATIONS ?? 3)
-  const remainingFreeUses = Math.max(verificationLimit - verificationCount, 0)
-  // effectiveTier: in dev builds a developer can simulate any tier; in prod always the real tier
-  const effectiveTier: Tier = (process.env.NODE_ENV === 'development' && devTierOverride) ? devTierOverride : currentTier
+  const remainingFreeUses = isAdminMode ? 999 : Math.max(verificationLimit - verificationCount, 0)
+  // effectiveTier: admin mode → institutional, dev override in dev builds, else real tier
+  const effectiveTier: Tier = isAdminMode
+    ? 'institutional'
+    : (process.env.NODE_ENV === 'development' && devTierOverride) ? devTierOverride : currentTier
 
   const [suggestedPrompts, setSuggestedPrompts] = useState<string[]>([])
 
@@ -156,6 +162,10 @@ export default function DashboardClient() {
       }
       setUser(session.user)
       setAccessToken(session.access_token)
+
+      // Check admin mode flag (set by admin1/SyntaxEpoch login)
+      const adminFlag = typeof window !== 'undefined' && localStorage.getItem('syntax_admin_mode') === 'true'
+      setIsAdminMode(adminFlag)
 
       // Fetch user profile for tier + usage
       // Cast to any: verification_count was added via migration but generated types are stale
@@ -376,7 +386,20 @@ export default function DashboardClient() {
         livePricesForBackend
       )
 
-      // 4b. Handle blocked usage warning — no verification ran
+      // 4b. Handle credits exhausted — show Financial Bridge modal
+      if (result.needsTopup) {
+        setShowFinancialBridge(true)
+        const topupMsg = `**Service Temporarily Unavailable**\n\nOur AI providers are experiencing capacity limits. Please upgrade your plan or try again shortly.`
+        setChatHistory(prev => [...prev, { role: 'assistant', content: topupMsg }])
+        await supabase.from('chat_messages').insert({
+          session_id: activeSessionId,
+          role: 'assistant',
+          content: topupMsg
+        })
+        return
+      }
+
+      // 4c. Handle blocked usage warning — no verification ran
       if (result.usageWarning?.warning_level === 'blocked') {
         const blockedMsg = `**Usage Limit Reached**\n\nYou've used your full usage allocation for this billing period ($${(result.usageWarning.current_cost_cents / 100).toFixed(2)} / $${(result.usageWarning.limit_cents / 100).toFixed(2)}). Please upgrade your plan to continue using SYNTAX.`
         setChatHistory(prev => [...prev, { role: 'assistant', content: blockedMsg }])
@@ -533,7 +556,15 @@ export default function DashboardClient() {
   // Usage tracking is loaded from DB in checkAuth effect above
 
   return (
-    <div className="h-screen bg-zinc-950 text-zinc-50 flex overflow-hidden">
+    <div className="h-screen ambient-bg text-zinc-50 flex overflow-hidden">
+      {/* Financial Bridge Modal */}
+      {showFinancialBridge && (
+        <FinancialBridgeModal
+          onClose={() => setShowFinancialBridge(false)}
+          accessToken={accessToken}
+          currentTier={effectiveTier}
+        />
+      )}
       {/* Mobile sidebar backdrop */}
       {isSidebarOpen && (
         <div
@@ -547,7 +578,7 @@ export default function DashboardClient() {
         fixed md:relative inset-y-0 left-0 z-30
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         ${isSidebarOpen ? 'md:w-64 lg:w-72' : 'md:w-0 md:overflow-hidden'}
-        w-72 shrink-0 border-r border-zinc-800 bg-zinc-900 md:bg-zinc-900/30 flex flex-col transition-all duration-300
+        w-72 shrink-0 border-r border-zinc-800/60 bg-zinc-900 md:bg-zinc-900/30 md:glass flex flex-col transition-all duration-300
       `}>
         <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
           <button 
@@ -843,7 +874,7 @@ export default function DashboardClient() {
             >
               <form 
                 onSubmit={handleSubmit}
-                className="relative bg-zinc-900 border border-zinc-800 rounded-2xl shadow-xl overflow-hidden focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/50 transition-all"
+                className="relative glass-panel rounded-2xl shadow-xl overflow-hidden focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/50 micro-glow transition-all"
               >
                 <textarea
                   value={inquiry}
@@ -1913,6 +1944,118 @@ function UsageWarningBanner({ warning, accessToken, currentTier }: { warning: Us
           }`}
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
+      </div>
+    </div>
+  )
+}
+
+function FinancialBridgeModal({ onClose, accessToken, currentTier }: { onClose: () => void; accessToken: string; currentTier: string }) {
+  const [isUpgrading, setIsUpgrading] = useState(false)
+  const nextTier = currentTier === 'observer' ? 'operator' : currentTier === 'operator' ? 'sovereign' : currentTier === 'sovereign' ? 'institutional' : null
+
+  const handleUpgrade = async (tier: string) => {
+    setIsUpgrading(true)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ tier }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch (e) {
+      console.error('Upgrade failed:', e)
+    } finally {
+      setIsUpgrading(false)
+    }
+  }
+
+  const tiers = [
+    { id: 'operator', name: 'Operator', price: '$29', period: '/mo', verifications: '50 verifications/mo', features: ['Real-time market research', 'Portfolio optimization', 'Priority support'] },
+    { id: 'sovereign', name: 'Sovereign', price: '$99', period: '/mo', verifications: '200 verifications/mo', features: ['Everything in Operator', 'Advanced scenario engine', 'Custom risk profiles', 'API access'] },
+    { id: 'institutional', name: 'Institutional', price: '$499', period: '/mo', verifications: 'Unlimited', features: ['Everything in Sovereign', 'Dedicated capacity', 'White-glove onboarding', 'SLA guarantee'] },
+  ]
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      {/* Modal */}
+      <div 
+        className="glass-panel relative z-10 w-full max-w-2xl rounded-2xl border border-emerald-500/20 p-8 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close */}
+        <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-300 transition-colors">
+          <X className="h-5 w-5" />
+        </button>
+
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-4">
+            <Shield className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-xs font-medium text-emerald-400 tracking-wide uppercase">Financial Bridge</span>
+          </div>
+          <h2 className="text-2xl font-semibold text-zinc-100 tracking-tight">Upgrade to Continue</h2>
+          <p className="text-sm text-zinc-400 mt-2 max-w-md mx-auto leading-relaxed">
+            Our AI research capacity has been reached for your current plan. Upgrade to unlock more verifications and priority access.
+          </p>
+        </div>
+
+        {/* Tier Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          {tiers.map((tier) => {
+            const isRecommended = tier.id === (nextTier || 'operator')
+            return (
+              <div
+                key={tier.id}
+                className={`relative rounded-xl border p-5 transition-all ${
+                  isRecommended 
+                    ? 'border-emerald-500/40 bg-emerald-500/5 shadow-lg shadow-emerald-500/10' 
+                    : 'border-zinc-700/50 bg-zinc-900/50 hover:border-zinc-600/50'
+                }`}
+              >
+                {isRecommended && (
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-emerald-500 text-[10px] font-bold text-black tracking-wider uppercase">
+                    Recommended
+                  </div>
+                )}
+                <div className="text-center">
+                  <h3 className="text-sm font-semibold text-zinc-300 mb-1">{tier.name}</h3>
+                  <div className="flex items-baseline justify-center gap-0.5">
+                    <span className="text-3xl font-bold text-zinc-100 tracking-tight">{tier.price}</span>
+                    <span className="text-xs text-zinc-500">{tier.period}</span>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-1">{tier.verifications}</p>
+                </div>
+                <ul className="mt-4 space-y-1.5">
+                  {tier.features.map((f, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-xs text-zinc-400">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500 mt-0.5 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => handleUpgrade(tier.id)}
+                  disabled={isUpgrading}
+                  className={`mt-4 w-full py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 ${
+                    isRecommended
+                      ? 'bg-emerald-500 hover:bg-emerald-400 text-black micro-glow'
+                      : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700'
+                  }`}
+                >
+                  {isUpgrading ? 'Redirecting...' : `Choose ${tier.name}`}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-zinc-600">
+          Secure payment via Stripe. Cancel anytime. Questions? <a href="mailto:support@oleacomputer.com" className="text-emerald-500 hover:text-emerald-400 transition-colors">Contact us</a>
+        </p>
       </div>
     </div>
   )

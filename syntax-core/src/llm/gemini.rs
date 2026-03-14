@@ -158,6 +158,19 @@ impl LlmProvider for GeminiProvider {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
+            // Circuit breaker: 429 (rate limit / resource exhaustion) or 400 (billing constraint)
+            if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                return Err(LlmError::CreditsExhausted(format!(
+                    "Gemini 429 resource exhausted: {}", body
+                )));
+            }
+            if status == reqwest::StatusCode::BAD_REQUEST 
+                && (body.contains("billing") || body.contains("quota") || body.contains("RESOURCE_EXHAUSTED")) 
+            {
+                return Err(LlmError::CreditsExhausted(format!(
+                    "Gemini billing constraint: {}", body
+                )));
+            }
             return Err(LlmError::RequestFailed(format!(
                 "HTTP {}: {}",
                 status, body

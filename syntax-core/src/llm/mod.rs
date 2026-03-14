@@ -12,6 +12,9 @@ pub enum LlmError {
     #[error("Rate limit exceeded")]
     RateLimitExceeded,
     
+    #[error("Credits exhausted: {0}")]
+    CreditsExhausted(String),
+    
     #[error("All providers failed. Anthropic: {primary_error}; Gemini: {fallback_error}")]
     AllProvidersFailed {
         primary_error: String,
@@ -20,6 +23,12 @@ pub enum LlmError {
     
     #[error("Invalid API key")]
     InvalidApiKey,
+}
+
+impl LlmError {
+    pub fn is_credits_exhausted(&self) -> bool {
+        matches!(self, LlmError::CreditsExhausted(_))
+    }
 }
 
 #[async_trait]
