@@ -92,7 +92,7 @@ impl GeminiProvider {
     pub fn new_with_model(api_key: String, model: String) -> Self {
         let client = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(10))
-            .timeout(Duration::from_secs(120))
+            .timeout(Duration::from_secs(25))
             .build()
             .unwrap_or_default();
         Self {
@@ -118,7 +118,7 @@ impl LlmProvider for GeminiProvider {
                 }],
             },
             generation_config: GenerationConfig {
-                max_output_tokens: 8192,
+                max_output_tokens: 4096,
                 response_mime_type: None,
             },
             tools: vec![

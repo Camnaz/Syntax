@@ -114,7 +114,7 @@ use tokio::sync::Semaphore;
 use tokio::time::{timeout, Duration};
 use uuid::Uuid;
 
-const MAX_ATTEMPTS: usize = 5;
+const MAX_ATTEMPTS: usize = 3;
 /// Hard per-attempt LLM timeout. Attempts exceeding this are cut and counted.
 const ATTEMPT_TIMEOUT_SECS: u64 = 20;
 /// After this many timeouts in one loop, bail early on best result and write incident.
@@ -347,7 +347,7 @@ impl VerificationEngine {
         tracing::info!("Classified inquiry intent: {:?}", intent);
 
         // Step 2b: Load recent successful verification patterns for self-improvement
-        let recent_learnings = read_recent_log_entries(8).await;
+        let recent_learnings = read_recent_log_entries(3).await;
 
         // Step 3: Verification loop with error injection and progressive refinement
         let mut error_history: Vec<String> = Vec::new();

@@ -53,7 +53,7 @@ impl AnthropicProvider {
     pub fn new(api_key: String) -> Self {
         let client = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(10))
-            .timeout(Duration::from_secs(120))
+            .timeout(Duration::from_secs(25))
             .build()
             .expect("failed to build Anthropic HTTP client");
         Self {
@@ -68,7 +68,7 @@ impl LlmProvider for AnthropicProvider {
     async fn complete(&self, system: &str, user: &str) -> Result<LlmResponse, LlmError> {
         let request = AnthropicRequest {
             model: "claude-sonnet-4-6".to_string(),
-            max_tokens: 8192,
+            max_tokens: 4096,
             system: system.to_string(),
             messages: vec![Message {
                 role: "user".to_string(),

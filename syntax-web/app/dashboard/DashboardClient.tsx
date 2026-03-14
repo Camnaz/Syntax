@@ -1462,8 +1462,8 @@ function ProjectionArtifact({ projection }: { projection: TrajectoryProjection }
 
 // Typical per-attempt duration in ms — derived from observed p50 latency with Gemini grounding.
 // Used for ETA estimation before any attempts have completed.
-const DEFAULT_ATTEMPT_MS = 14_000
-const MAX_LOOP_ATTEMPTS = 5
+const DEFAULT_ATTEMPT_MS = 10_000
+const MAX_LOOP_ATTEMPTS = 3
 
 function ThinkingProcess({ events, startedAt }: { events: LoopEvent[]; startedAt: number | null }) {
   const [isOpen, setIsOpen] = useState(true)
@@ -1616,7 +1616,7 @@ function ThinkingProcess({ events, startedAt }: { events: LoopEvent[]; startedAt
             {/* Upfront time hint — shown before first attempt completes */}
             {!isDone && completedCount === 0 && elapsedSec < 5 && (
               <div className="text-zinc-600 text-[10px] pb-1">
-                Deep portfolio analysis typically takes 15–40s. Running {MAX_LOOP_ATTEMPTS} optimisation passes.
+                Portfolio analysis typically takes 10–30s. Running {MAX_LOOP_ATTEMPTS} optimisation passes.
               </div>
             )}
 
