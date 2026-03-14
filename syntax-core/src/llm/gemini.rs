@@ -167,9 +167,9 @@ impl LlmProvider for GeminiProvider {
             if status == reqwest::StatusCode::BAD_REQUEST {
                 let body_lower = body.to_lowercase();
                 // Only trigger circuit breaker for actual billing/quota errors, not validation errors
+                // RESOURCE_EXHAUSTED is a quota limit (retry-able), not a billing failure — don't break the loop
                 if (body_lower.contains("billing") && (body_lower.contains("disabled") || body_lower.contains("account")))
-                    || (body_lower.contains("quota") && body_lower.contains("exceeded"))
-                    || body.contains("RESOURCE_EXHAUSTED")
+                    || (body_lower.contains("quota") && body_lower.contains("exceeded") && !body.contains("RESOURCE_EXHAUSTED"))
                 {
                     return Err(LlmError::CreditsExhausted(format!(
                         "Gemini billing constraint: {}", body
