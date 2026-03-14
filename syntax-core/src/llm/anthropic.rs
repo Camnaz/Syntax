@@ -67,7 +67,7 @@ impl AnthropicProvider {
 impl LlmProvider for AnthropicProvider {
     async fn complete(&self, system: &str, user: &str) -> Result<LlmResponse, LlmError> {
         let request = AnthropicRequest {
-            model: "claude-4-5-haiku-2026".to_string(),
+            model: "claude-3-5-haiku-20241022".to_string(),
             max_tokens: 4096,
             system: system.to_string(),
             messages: vec![Message {
