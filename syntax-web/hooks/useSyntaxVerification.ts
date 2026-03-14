@@ -17,6 +17,7 @@ export type LoopEvent =
   | { event: 'Terminated'; data: { total_attempts: number; reason: string } }
   | { event: 'Settled'; data: { total_attempts: number; final_projection: TrajectoryProjection } }
   | { event: 'Error'; data: { message: string } }
+  | { event: 'Slow'; data: { attempt: number; timeout_secs: number } }
   | { event: 'UsageWarning'; data: UsageWarningData }
 
 export interface ScenarioChartParams {

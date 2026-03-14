@@ -111,10 +111,16 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Semaphore;
+use tokio::time::{timeout, Duration};
 use uuid::Uuid;
 
 const MAX_ATTEMPTS: usize = 5;
+/// Hard per-attempt LLM timeout. Attempts exceeding this are cut and counted.
+const ATTEMPT_TIMEOUT_SECS: u64 = 20;
+/// After this many timeouts in one loop, bail early on best result and write incident.
+const FAST_MODE_THRESHOLD: usize = 2;
 pub const RESEARCH_LOG_PATH: &str = "research_log.txt";
+pub const PERF_INCIDENT_PATH: &str = "SYNTAX_PERF_INCIDENT.md";
 
 /// Global monotonic experiment counter — persists for the lifetime of the process.
 static EXPERIMENT_COUNTER: AtomicU64 = AtomicU64::new(1);
@@ -137,8 +143,47 @@ async fn read_recent_log_entries(n: usize) -> String {
     recent.into_iter().rev().collect::<Vec<_>>().join("\n")
 }
 
+/// Write a performance incident report for the autoresearcher to investigate.
+async fn write_perf_incident(inquiry: &str, timeout_count: usize, last_attempt: usize) {
+    let content = format!(
+        "# SYNTAX Performance Incident\n\
+        Timestamp: {}\n\
+        Inquiry: {}\n\
+        Timeouts: {}/{} attempts ({}s limit each)\n\
+        \n\
+        ## Autoresearcher Investigation Task\n\
+        The verification loop timed out {} time(s). Investigate and propose fixes for:\n\
+        1. System prompt length (RECENT_VERIFICATION_PATTERNS section — reduce from 8 to 3 entries)\n\
+        2. Gemini grounding latency — consider disabling for simple queries\n\
+        3. Consider reducing MAX_ATTEMPTS from 5 to 3 for faster loops\n\
+        4. Add streaming token-level response to surface partial results sooner\n\
+        5. Provider-specific timeout tuning (Gemini grounding vs Anthropic)\n\
+        \n\
+        STATUS: NEEDS_INVESTIGATION\n\
+        Generated: {}\n",
+        Utc::now().format("%Y-%m-%dT%H:%M:%SZ"),
+        &inquiry[..inquiry.len().min(120)],
+        timeout_count, last_attempt, ATTEMPT_TIMEOUT_SECS,
+        timeout_count,
+        Utc::now().format("%Y-%m-%dT%H:%M:%SZ"),
+    );
+    if let Ok(mut f) = tokio::fs::OpenOptions::new()
+        .create(true).write(true).truncate(true)
+        .open(PERF_INCIDENT_PATH).await
+    {
+        let _ = f.write_all(content.as_bytes()).await;
+    }
+    tracing::warn!("Performance incident written: {} timeouts on attempt {}", timeout_count, last_attempt);
+}
+
 async fn append_research_log(inquiry: &str, best_score: f64, best_attempt: usize, proj: &TrajectoryProjection) {
     let exp = EXPERIMENT_COUNTER.fetch_add(1, Ordering::Relaxed);
+    // Strip injected news/memory prefixes so we log the actual user question
+    let clean_inquiry = if let Some(pos) = inquiry.find("]\n\n") {
+        inquiry[pos + 3..].trim()
+    } else {
+        inquiry.trim()
+    };
     let line = format!(
         "[{}] exp={:04} score={:.4} sharpe={:.2} dd={:.1}% conf={:.0}% attempts={} | {}\n",
         Utc::now().format("%Y-%m-%dT%H:%M:%SZ"),
@@ -148,7 +193,7 @@ async fn append_research_log(inquiry: &str, best_score: f64, best_attempt: usize
         proj.projected_max_drawdown * 100.0,
         proj.confidence_score * 100.0,
         best_attempt,
-        &inquiry[..inquiry.len().min(80)],
+        &clean_inquiry[..clean_inquiry.len().min(100)],
     );
     if let Ok(mut f) = tokio::fs::OpenOptions::new()
         .create(true).append(true).open(RESEARCH_LOG_PATH).await
@@ -218,6 +263,11 @@ pub enum LoopEvent {
     },
     Error {
         message: String,
+    },
+    /// Emitted when an attempt exceeds the hard timeout and is abandoned.
+    Slow {
+        attempt: usize,
+        timeout_secs: u64,
     },
     UsageWarning {
         warning_level: String,
@@ -303,6 +353,7 @@ impl VerificationEngine {
         let mut error_history: Vec<String> = Vec::new();
         let mut previous_response: Option<String> = None;
         let mut cumulative_cost_cents: i32 = 0;
+        let mut timeout_count: usize = 0;
 
         // autoresearch-style: track the best-scoring valid projection across all attempts
         let mut best_projection: Option<TrajectoryProjection> = None;
@@ -332,14 +383,48 @@ impl VerificationEngine {
             tracing::info!("Attempt {}/{}: sending to LLM (intent={:?}, errors={})", 
                 attempt, MAX_ATTEMPTS, intent, error_history.len());
 
-            let (response, provider) = match self.llm_router.complete(&system_prompt, &user_prompt).await {
-                Ok(r) => r,
-                Err(e) => {
+            let llm_result = timeout(
+                Duration::from_secs(ATTEMPT_TIMEOUT_SECS),
+                self.llm_router.complete(&system_prompt, &user_prompt),
+            ).await;
+
+            let (response, provider) = match llm_result {
+                Ok(Ok(r)) => r,
+                Ok(Err(e)) => {
                     let error_msg = format!("LLM request failed: {}", e);
                     let _ = tx.send(LoopEvent::Error {
                         message: error_msg.clone(),
                     }).await;
                     error_history.push(error_msg);
+                    continue;
+                }
+                Err(_elapsed) => {
+                    timeout_count += 1;
+                    tracing::warn!("Attempt {} timed out after {}s (total timeouts: {})",
+                        attempt, ATTEMPT_TIMEOUT_SECS, timeout_count);
+                    let _ = tx.send(LoopEvent::Slow {
+                        attempt,
+                        timeout_secs: ATTEMPT_TIMEOUT_SECS,
+                    }).await;
+                    // Fast-mode: if >= threshold timeouts and we have a valid result, bail early
+                    if timeout_count >= FAST_MODE_THRESHOLD {
+                        write_perf_incident(inquiry, timeout_count, attempt).await;
+                        if let Some(proj) = best_projection {
+                            tracing::info!("Fast-mode bail: returning best of {} attempts after {} timeouts",
+                                best_attempt, timeout_count);
+                            append_research_log(inquiry, best_score, best_attempt, &proj).await;
+                            let _ = tx.send(LoopEvent::Settled {
+                                total_attempts: attempt,
+                                final_projection: proj.clone(),
+                            }).await;
+                            return LoopOutcome::Settled {
+                                attempts: attempt,
+                                projection: proj,
+                                provider_used: best_provider,
+                                cost_cents: cumulative_cost_cents,
+                            };
+                        }
+                    }
                     continue;
                 }
             };

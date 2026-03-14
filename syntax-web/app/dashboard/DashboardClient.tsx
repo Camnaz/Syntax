@@ -1472,12 +1472,13 @@ function ThinkingProcess({ events, startedAt }: { events: LoopEvent[]; startedAt
   // Derive loop state from events ─────────────────────────────────────────────
   type AttemptState = {
     provider: string
-    status: 'running' | 'verified' | 'rejected'
+    status: 'running' | 'verified' | 'rejected' | 'timeout'
     score?: number
     is_new_best?: boolean
     sharpe?: number
     drawdown?: number
     confidence?: number
+    timeout_secs?: number
   }
 
   const attemptMap = new Map<number, AttemptState>()
@@ -1487,6 +1488,8 @@ function ThinkingProcess({ events, startedAt }: { events: LoopEvent[]; startedAt
   let isTerminated = false
   let topicRejected = false
   let topicReason = ''
+  let timeoutCount = 0
+  let fastModeTriggered = false
 
   for (const ev of events) {
     if (ev.event === 'TopicCheck') {
@@ -1507,6 +1510,12 @@ function ThinkingProcess({ events, startedAt }: { events: LoopEvent[]; startedAt
       const existing = attemptMap.get(ev.data.attempt)
       if (existing) existing.status = 'rejected'
       else attemptMap.set(ev.data.attempt, { provider: '—', status: 'rejected' })
+    } else if (ev.event === 'Slow') {
+      timeoutCount++
+      const existing = attemptMap.get(ev.data.attempt)
+      if (existing) { existing.status = 'timeout'; existing.timeout_secs = ev.data.timeout_secs }
+      else attemptMap.set(ev.data.attempt, { provider: '—', status: 'timeout', timeout_secs: ev.data.timeout_secs })
+      if (timeoutCount >= 2) fastModeTriggered = true
     } else if (ev.event === 'Settled') {
       isSettled = true; settledTotal = ev.data.total_attempts
     } else if (ev.event === 'Terminated') {
@@ -1634,6 +1643,8 @@ function ThinkingProcess({ events, startedAt }: { events: LoopEvent[]; startedAt
                     ? 'bg-emerald-500/10 border border-emerald-500/20'
                     : att.status === 'rejected'
                     ? 'bg-zinc-800/30'
+                    : att.status === 'timeout'
+                    ? 'bg-amber-500/5 border border-amber-500/10'
                     : att.status === 'running'
                     ? 'bg-blue-500/5 border border-blue-500/10 animate-pulse'
                     : 'bg-zinc-800/20'
@@ -1642,12 +1653,14 @@ function ThinkingProcess({ events, startedAt }: { events: LoopEvent[]; startedAt
                 {att.status === 'running' && <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />}
                 {att.status === 'verified' && <CheckCircle2 className={`h-3 w-3 shrink-0 ${att.is_new_best ? 'text-emerald-400' : 'text-zinc-500'}`} />}
                 {att.status === 'rejected' && <XCircle className="h-3 w-3 shrink-0 text-yellow-500/70" />}
+                {att.status === 'timeout' && <AlertCircle className="h-3 w-3 shrink-0 text-amber-500/70" />}
 
                 <span className="text-zinc-600 w-8 shrink-0">#{num}</span>
                 <span className="text-zinc-500 shrink-0">{att.provider !== 'pending' ? att.provider : '…'}</span>
 
                 {att.status === 'running' && <span className="text-blue-400/70 ml-1">analysing…</span>}
                 {att.status === 'rejected' && <span className="text-yellow-500/60 ml-1">constraint fail — retrying</span>}
+                {att.status === 'timeout' && <span className="text-amber-500/60 ml-1">timed out after {att.timeout_secs}s — skipping</span>}
                 {att.status === 'verified' && att.score !== undefined && (
                   <>
                     <span className={`ml-1 font-bold ${att.is_new_best ? 'text-emerald-300' : 'text-zinc-400'}`}>
@@ -1663,10 +1676,16 @@ function ThinkingProcess({ events, startedAt }: { events: LoopEvent[]; startedAt
               </div>
             ))}
 
+            {fastModeTriggered && isSettled && (
+              <div className="flex items-center gap-1.5 mt-1 pt-1.5 border-t border-zinc-800/40 text-amber-400/80 text-[10px]">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                <span>Fast mode — returned best available after {timeoutCount} timeouts. Autoresearcher flagged for investigation.</span>
+              </div>
+            )}
             {isSettled && bestScore > -Infinity && (
               <div className="flex items-center gap-2 mt-1 pt-1.5 border-t border-zinc-800/40 text-emerald-400/80">
                 <CheckCircle2 className="h-3 w-3" />
-                <span>Best of {settledTotal} passes — score {bestScore.toFixed(4)} · {elapsedSec}s total</span>
+                <span>Best of {settledTotal} passes — score {bestScore.toFixed(4)} · {elapsedSec}s total{fastModeTriggered ? ' (fast mode)' : ''}</span>
               </div>
             )}
             {isTerminated && (
