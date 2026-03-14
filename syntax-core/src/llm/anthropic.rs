@@ -134,12 +134,17 @@ impl LlmProvider for AnthropicProvider {
                     "Anthropic 429 rate limit: {}", body
                 )));
             }
-            if status == reqwest::StatusCode::BAD_REQUEST
-                && (body.contains("billing") || body.contains("credit") || body.contains("quota"))
-            {
-                return Err(LlmError::CreditsExhausted(format!(
-                    "Anthropic billing constraint: {}", body
-                )));
+            if status == reqwest::StatusCode::BAD_REQUEST {
+                let body_lower = body.to_lowercase();
+                // Only trigger circuit breaker for actual billing/quota errors, not validation errors
+                if (body_lower.contains("billing") && body_lower.contains("enabled"))
+                    || (body_lower.contains("credit") && (body_lower.contains("insufficient") || body_lower.contains("balance")))
+                    || (body_lower.contains("quota") && body_lower.contains("exceeded"))
+                {
+                    return Err(LlmError::CreditsExhausted(format!(
+                        "Anthropic billing constraint: {}", body
+                    )));
+                }
             }
             return Err(LlmError::RequestFailed(format!(
                 "HTTP {}: {}",

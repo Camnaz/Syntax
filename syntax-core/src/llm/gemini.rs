@@ -164,12 +164,17 @@ impl LlmProvider for GeminiProvider {
                     "Gemini 429 resource exhausted: {}", body
                 )));
             }
-            if status == reqwest::StatusCode::BAD_REQUEST 
-                && (body.contains("billing") || body.contains("quota") || body.contains("RESOURCE_EXHAUSTED")) 
-            {
-                return Err(LlmError::CreditsExhausted(format!(
-                    "Gemini billing constraint: {}", body
-                )));
+            if status == reqwest::StatusCode::BAD_REQUEST {
+                let body_lower = body.to_lowercase();
+                // Only trigger circuit breaker for actual billing/quota errors, not validation errors
+                if (body_lower.contains("billing") && (body_lower.contains("disabled") || body_lower.contains("account")))
+                    || (body_lower.contains("quota") && body_lower.contains("exceeded"))
+                    || body.contains("RESOURCE_EXHAUSTED")
+                {
+                    return Err(LlmError::CreditsExhausted(format!(
+                        "Gemini billing constraint: {}", body
+                    )));
+                }
             }
             return Err(LlmError::RequestFailed(format!(
                 "HTTP {}: {}",
