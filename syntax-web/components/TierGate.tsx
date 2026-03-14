@@ -62,50 +62,56 @@ export function DevToolsBar({
   const tiers: Tier[] = ['observer', 'operator', 'sovereign', 'institutional']
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 bg-zinc-900 border border-amber-500/40 rounded-xl px-3 py-2 shadow-xl shadow-black/40 text-xs font-mono">
-      {/* Amber dot */}
-      <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-      <span className="text-amber-400 font-semibold mr-1">DEV</span>
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 bg-zinc-900 border border-amber-500/40 rounded-xl p-4 shadow-2xl shadow-black/60 text-xs font-mono w-48">
+      <div className="flex items-center justify-center gap-2 mb-1 border-b border-zinc-800 pb-3">
+        <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+        <span className="text-amber-400 font-bold tracking-wider">DEV MODE</span>
+      </div>
 
       {/* Bypass toggle */}
       <button
         onClick={() => onToggleBypass(!devBypass)}
-        className={`flex items-center gap-1.5 px-2 py-1 rounded-md border transition-all min-h-[32px] ${
+        className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border transition-all w-full font-semibold ${
           devBypass
-            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+            ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
             : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:border-zinc-500'
         }`}
         title="Toggle rate-limit bypass for observer tier"
       >
-        {devBypass ? '⚡ Bypass ON' : '⚡ Bypass OFF'}
+        {devBypass ? '⚡ BYPASS ON' : '⚡ BYPASS OFF'}
       </button>
 
       {/* Tier override */}
-      <select
-        value={devTierOverride ?? realTier}
-        onChange={(e) => {
-          const val = e.target.value as Tier
-          onTierOverride(val === realTier ? null : val)
-        }}
-        className="bg-zinc-800 text-zinc-200 border border-zinc-700 rounded-md px-2 py-1 min-h-[32px] focus:outline-none focus:border-amber-500/50 cursor-pointer"
-        title="Simulate a different subscription tier"
-      >
-        {tiers.map((t) => (
-          <option key={t} value={t}>
-            {t === realTier ? `${TIER_NAMES[t]} (real)` : TIER_NAMES[t]}
-          </option>
-        ))}
-      </select>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider px-1">Force Tier</label>
+        <div className="flex items-center gap-1">
+          <select
+            value={devTierOverride ?? realTier}
+            onChange={(e) => {
+              const val = e.target.value as Tier
+              onTierOverride(val === realTier ? null : val)
+            }}
+            className="bg-zinc-950 text-zinc-200 border border-zinc-700 rounded-lg px-2 py-2 flex-1 outline-none focus:border-amber-500/50 cursor-pointer"
+            title="Simulate a different subscription tier"
+          >
+            {tiers.map((t) => (
+              <option key={t} value={t}>
+                {t === realTier ? `${TIER_NAMES[t]} (real)` : TIER_NAMES[t]}
+              </option>
+            ))}
+          </select>
 
-      {devTierOverride && (
-        <button
-          onClick={() => onTierOverride(null)}
-          className="text-zinc-500 hover:text-zinc-300 px-1"
-          title="Reset to real tier"
-        >
-          ✕
-        </button>
-      )}
+          {devTierOverride && (
+            <button
+              onClick={() => onTierOverride(null)}
+              className="h-full px-2 text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-md transition-colors flex items-center justify-center border border-transparent hover:border-amber-500/20"
+              title="Reset to real tier"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
