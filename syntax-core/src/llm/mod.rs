@@ -48,3 +48,4 @@ pub use anthropic::AnthropicProvider;
 pub use gemini::GeminiProvider;
 pub use mock::MockProvider;
 pub use router::LlmRouter;
+pub mod gemini_metadata;

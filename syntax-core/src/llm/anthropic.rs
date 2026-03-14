@@ -181,7 +181,7 @@ impl LlmProvider for AnthropicProvider {
 
         let input_tokens_estimate = ((system.len() + user.len()) / 4) as u32;
         let output_tokens_estimate = (text.len() / 4) as u32;
-        Ok(LlmResponse { text, tool_calls, input_tokens_estimate, output_tokens_estimate })
+        Ok(LlmResponse { text, tool_calls, input_tokens_estimate, output_tokens_estimate, grounding_metadata: None })
     }
 
     fn name(&self) -> &'static str {

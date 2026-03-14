@@ -15,7 +15,7 @@ impl LlmProvider for MockProvider {
         if *current < self.responses.len() {
             let response = self.responses[*current].clone();
             *current += 1;
-            Ok(LlmResponse { text: response, tool_calls: vec![], input_tokens_estimate: 0, output_tokens_estimate: 0 })
+            Ok(LlmResponse { text: response, tool_calls: vec![], input_tokens_estimate: 0, output_tokens_estimate: 0, grounding_metadata: None })
         } else {
             Err(LlmError::RequestFailed("No more mock responses".to_string()))
         }

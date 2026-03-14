@@ -34,4 +34,5 @@ pub struct LlmResponse {
     pub tool_calls: Vec<ToolCall>,
     pub input_tokens_estimate: u32,
     pub output_tokens_estimate: u32,
+    pub grounding_metadata: Option<crate::llm::gemini_metadata::GroundingMetadata>,
 }

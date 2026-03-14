@@ -64,6 +64,8 @@ struct GeminiResponse {
 #[derive(Deserialize)]
 struct Candidate {
     content: ResponseContent,
+    #[serde(rename = "groundingMetadata", default)]
+    grounding_metadata: Option<crate::llm::gemini_metadata::GroundingMetadata>,
 }
 
 #[derive(Deserialize)]
@@ -207,7 +209,8 @@ impl LlmProvider for GeminiProvider {
             
         let input_tokens_estimate = ((system.len() + user.len()) / 4) as u32;
         let output_tokens_estimate = (text.len() / 4) as u32;
-        Ok(LlmResponse { text, tool_calls, input_tokens_estimate, output_tokens_estimate })
+        let grounding_metadata = gemini_response.candidates.first().and_then(|c| c.grounding_metadata.clone());
+        Ok(LlmResponse { text, tool_calls, input_tokens_estimate, output_tokens_estimate, grounding_metadata })
     }
 
     fn name(&self) -> &'static str {
