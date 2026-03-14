@@ -123,7 +123,7 @@ impl LlmProvider for GeminiProvider {
             },
             tools: vec![
                 ToolWrapper {
-                    google_search: None,
+                    google_search: Some(GoogleSearchTool {}),
                     function_declarations: Some(vec![
                         crate::llm::tools::portfolio::upsert_position_declaration(),
                         crate::llm::tools::portfolio::pending_actions_declaration()
