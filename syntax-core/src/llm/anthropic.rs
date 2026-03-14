@@ -52,8 +52,8 @@ struct ContentBlock {
 impl AnthropicProvider {
     pub fn new(api_key: String) -> Self {
         let client = reqwest::Client::builder()
-            .connect_timeout(Duration::from_secs(5))
-            .timeout(Duration::from_secs(22))
+            .connect_timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(60))
             .build()
             .expect("failed to build Anthropic HTTP client");
         Self {

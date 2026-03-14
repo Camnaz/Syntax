@@ -91,8 +91,8 @@ impl GeminiProvider {
 
     pub fn new_with_model(api_key: String, model: String) -> Self {
         let client = reqwest::Client::builder()
-            .connect_timeout(Duration::from_secs(5))
-            .timeout(Duration::from_secs(22))
+            .connect_timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(60))
             .build()
             .unwrap_or_default();
         Self {

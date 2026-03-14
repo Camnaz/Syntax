@@ -116,7 +116,7 @@ use uuid::Uuid;
 
 const MAX_ATTEMPTS: usize = 3;
 /// Hard per-attempt LLM timeout. Attempts exceeding this are cut and counted.
-const ATTEMPT_TIMEOUT_SECS: u64 = 20;
+const ATTEMPT_TIMEOUT_SECS: u64 = 65;
 /// After this many timeouts in one loop, bail early on best result and write incident.
 const FAST_MODE_THRESHOLD: usize = 2;
 pub const RESEARCH_LOG_PATH: &str = "research_log.txt";
