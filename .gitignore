@@ -6,12 +6,16 @@ node_modules/
 .next/
 .vercel/
 
-# Secrets — NEVER commit
+# Secrets — NEVER commit these
 .env
 .env.local
-.env.production
 .env.*.local
 syntax-core/.env
+
+# These are safe to commit (no secrets inside)
+!.env.development
+!.env.production
+!.env.example
 
 # Railway
 .railway/

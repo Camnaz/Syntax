@@ -14,12 +14,15 @@ sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-rustls", "uuid"
 uuid = { version = "1.8", features = ["v4", "serde"] }
 jsonwebtoken = "9.2"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json"] }
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 tokio-stream = "0.1"
 futures = "0.3"
 thiserror = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"
+dotenvy = "0.15"
+postgrest = "1.6.0"
+async-stream = "0.3"
 
 [profile.release]
 opt-level = 3
