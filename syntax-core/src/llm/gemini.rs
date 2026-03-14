@@ -24,7 +24,7 @@ struct GeminiRequest {
 
 #[derive(Serialize)]
 struct ToolWrapper {
-    #[serde(rename = "googleSearch", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "google_search", skip_serializing_if = "Option::is_none")]
     google_search: Option<GoogleSearchTool>,
     #[serde(rename = "functionDeclarations", skip_serializing_if = "Option::is_none")]
     function_declarations: Option<Vec<crate::llm::tool::FunctionDeclaration>>,
