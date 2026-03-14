@@ -1087,7 +1087,9 @@ mod tests {
             *idx += 1;
             Ok(crate::llm::tool::LlmResponse {
                 text: response,
-                tool_calls: vec![]
+                tool_calls: vec![],
+                input_tokens_estimate: 0,
+                output_tokens_estimate: 0,
             })
         }
 

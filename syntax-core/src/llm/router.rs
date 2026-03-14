@@ -1,4 +1,5 @@
 use crate::llm::{LlmError, LlmProvider};
+use crate::llm::tool::LlmResponse;
 use std::sync::Arc;
 
 pub struct LlmRouter {
@@ -6,77 +7,93 @@ pub struct LlmRouter {
     fallback: Arc<dyn LlmProvider>,
 }
 
+fn is_valid(r: &LlmResponse) -> bool {
+    !r.text.trim().is_empty() || !r.tool_calls.is_empty()
+}
+
 impl LlmRouter {
     pub fn new(primary: Arc<dyn LlmProvider>, fallback: Arc<dyn LlmProvider>) -> Self {
         Self { primary, fallback }
     }
 
-    pub async fn complete(&self, system: &str, user: &str) -> Result<(crate::llm::tool::LlmResponse, &'static str), LlmError> {
-        match self.primary.complete(system, user).await {
-            Ok(response) => {
-                if response.text.trim().is_empty() && response.tool_calls.is_empty() {
-                    let primary_empty_msg = format!("{} returned empty response", self.primary.name());
-                    tracing::warn!(
-                        "{}. Falling back to {}",
-                        primary_empty_msg,
-                        self.fallback.name()
-                    );
+    /// Race both providers in parallel. First valid response wins.
+    /// If the winner returned empty/error, the other result is checked.
+    pub async fn complete(&self, system: &str, user: &str) -> Result<(LlmResponse, &'static str), LlmError> {
+        let p = Arc::clone(&self.primary);
+        let f = Arc::clone(&self.fallback);
+        let sys_p = system.to_owned();
+        let usr_p = user.to_owned();
+        let sys_f = system.to_owned();
+        let usr_f = user.to_owned();
 
-                    match self.fallback.complete(system, user).await {
-                        Ok(fallback_response) => {
-                            if fallback_response.text.trim().is_empty() && fallback_response.tool_calls.is_empty() {
-                                tracing::error!(
-                                    "Fallback provider {} also returned empty response",
-                                    self.fallback.name()
-                                );
-                                return Err(LlmError::AllProvidersFailed {
-                                    primary_error: primary_empty_msg,
-                                    fallback_error: format!("{} returned empty response", self.fallback.name()),
-                                });
+        let mut primary_handle = tokio::spawn(async move { p.complete(&sys_p, &usr_p).await });
+        let mut fallback_handle = tokio::spawn(async move { f.complete(&sys_f, &usr_f).await });
+
+        let primary_name = self.primary.name();
+        let fallback_name = self.fallback.name();
+
+        // Race: whichever finishes first
+        tokio::select! {
+            biased;
+            r = &mut primary_handle => {
+                let result = r.map_err(|e| LlmError::RequestFailed(e.to_string()))?;
+                match result {
+                    Ok(resp) if is_valid(&resp) => {
+                        tracing::info!("Race won by {} (valid response)", primary_name);
+                        return Ok((resp, primary_name));
+                    }
+                    first => {
+                        let first_err = match first {
+                            Ok(_) => format!("{} returned empty", primary_name),
+                            Err(e) => { tracing::warn!("Race: {} failed: {}", primary_name, e); e.to_string() }
+                        };
+                        // Wait for fallback
+                        match fallback_handle.await {
+                            Ok(Ok(resp)) if is_valid(&resp) => {
+                                tracing::info!("Race: {} failed, {} succeeded", primary_name, fallback_name);
+                                Ok((resp, fallback_name))
                             }
-                            tracing::info!("LLM request succeeded with fallback provider: {}", self.fallback.name());
-                            return Ok((fallback_response, self.fallback.name()));
-                        }
-                        Err(fallback_err) => {
-                            tracing::error!(
-                                "Fallback provider {} failed after empty primary response: {}",
-                                self.fallback.name(),
-                                fallback_err
-                            );
-                            return Err(LlmError::AllProvidersFailed {
-                                primary_error: primary_empty_msg,
-                                fallback_error: fallback_err.to_string(),
-                            });
+                            Ok(Ok(_)) => Err(LlmError::AllProvidersFailed {
+                                primary_error: first_err,
+                                fallback_error: format!("{} returned empty", fallback_name),
+                            }),
+                            Ok(Err(e)) => Err(LlmError::AllProvidersFailed {
+                                primary_error: first_err,
+                                fallback_error: e.to_string(),
+                            }),
+                            Err(e) => Err(LlmError::RequestFailed(e.to_string())),
                         }
                     }
                 }
-                tracing::info!("LLM request succeeded with primary provider: {}", self.primary.name());
-                Ok((response, self.primary.name()))
             }
-            Err(primary_err) => {
-                tracing::warn!(
-                    "Primary provider {} failed: {}. Falling back to {}",
-                    self.primary.name(),
-                    primary_err,
-                    self.fallback.name()
-                );
-                let primary_err_str = primary_err.to_string();
-
-                match self.fallback.complete(system, user).await {
-                    Ok(response) => {
-                        tracing::info!("LLM request succeeded with fallback provider: {}", self.fallback.name());
-                        Ok((response, self.fallback.name()))
+            r = &mut fallback_handle => {
+                let result = r.map_err(|e| LlmError::RequestFailed(e.to_string()))?;
+                match result {
+                    Ok(resp) if is_valid(&resp) => {
+                        tracing::info!("Race won by {} (valid response)", fallback_name);
+                        return Ok((resp, fallback_name));
                     }
-                    Err(fallback_err) => {
-                        tracing::error!(
-                            "Fallback provider {} also failed: {}",
-                            self.fallback.name(),
-                            fallback_err
-                        );
-                        Err(LlmError::AllProvidersFailed {
-                            primary_error: primary_err_str,
-                            fallback_error: fallback_err.to_string(),
-                        })
+                    first => {
+                        let first_err = match first {
+                            Ok(_) => format!("{} returned empty", fallback_name),
+                            Err(e) => { tracing::warn!("Race: {} failed: {}", fallback_name, e); e.to_string() }
+                        };
+                        // Wait for primary
+                        match primary_handle.await {
+                            Ok(Ok(resp)) if is_valid(&resp) => {
+                                tracing::info!("Race: {} failed, {} succeeded", fallback_name, primary_name);
+                                Ok((resp, primary_name))
+                            }
+                            Ok(Ok(_)) => Err(LlmError::AllProvidersFailed {
+                                primary_error: format!("{} returned empty", primary_name),
+                                fallback_error: first_err,
+                            }),
+                            Ok(Err(e)) => Err(LlmError::AllProvidersFailed {
+                                primary_error: e.to_string(),
+                                fallback_error: first_err,
+                            }),
+                            Err(e) => Err(LlmError::RequestFailed(e.to_string())),
+                        }
                     }
                 }
             }

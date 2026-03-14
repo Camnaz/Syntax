@@ -90,7 +90,9 @@ mod tests {
         async fn complete(&self, _system: &str, _user: &str) -> Result<crate::llm::tool::LlmResponse, LlmError> {
             Ok(crate::llm::tool::LlmResponse {
                 text: self.response.clone(),
-                tool_calls: vec![]
+                tool_calls: vec![],
+                input_tokens_estimate: 0,
+                output_tokens_estimate: 0,
             })
         }
 
