@@ -100,6 +100,8 @@ export default function DashboardClient() {
   const [accessToken, setAccessToken] = useState<string>('')
   const [positionTickers, setPositionTickers] = useState<string[]>([])
   const [showResearchLog, setShowResearchLog] = useState(false)
+  // Track which session owns the currently-running verification so it survives navigation
+  const [streamingSessionId, setStreamingSessionId] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -113,7 +115,8 @@ export default function DashboardClient() {
   const loadSession = async (sessionId: string) => {
     setCurrentSessionId(sessionId)
     setShowHomepage(false)
-    verification.reset()
+    // Don't kill an in-flight verification — just switch the view
+    if (!verification.isStreaming) verification.reset()
     
     const { data } = await supabase
       .from('chat_messages')
@@ -131,7 +134,8 @@ export default function DashboardClient() {
     setChatHistory([])
     setInquiry('')
     setShowHomepage(false)
-    verification.reset()
+    // Don't kill an in-flight verification — user may return to that session
+    if (!verification.isStreaming) verification.reset()
   }
 
   const deleteSession = async (sessionId: string) => {
@@ -362,6 +366,7 @@ export default function DashboardClient() {
       const newsPrefix = newsContext.length > 0 
         ? `[RECENT MARKET NEWS FOR CONTEXT — do not respond to these unless the user asks about them:\n${newsContext.join('\n')}\n]\n\n`
         : ''
+      setStreamingSessionId(activeSessionId)
       const result = await verification.verify(
         newsPrefix + currentInquiry,
         portfolioId,
@@ -453,11 +458,13 @@ export default function DashboardClient() {
         projection_data: result.finalProjection || undefined
       }])
 
+      setStreamingSessionId(null)
       // 8. Increment local usage count (DB is incremented server-side or via RPC)
       setVerificationCount(prev => prev + 1)
 
     } catch (err) {
       console.error('Submission error:', err)
+      setStreamingSessionId(null)
       setChatHistory(prev => [...prev, { 
         role: 'assistant', 
         content: 'Failed to process inquiry due to a network or authentication error.' 
@@ -544,7 +551,7 @@ export default function DashboardClient() {
       `}>
         <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
           <button 
-            onClick={() => { setShowHomepage(true); setCurrentSessionId(null); setChatHistory([]); verification.reset() }}
+            onClick={() => { setShowHomepage(true); setCurrentSessionId(null); setChatHistory([]); if (!verification.isStreaming) verification.reset() }}
             className="flex items-center gap-2 font-bold text-lg tracking-tight hover:text-emerald-400 transition-colors"
           >
             <Shield className="h-5 w-5 text-emerald-500" />
@@ -581,9 +588,13 @@ export default function DashboardClient() {
                 <button
                   onClick={() => loadSession(session.id)}
                   className="flex-1 text-left px-3 py-2 text-sm flex items-center gap-3 min-w-0"
+                  title={streamingSessionId === session.id ? 'Verification running…' : undefined}
                 >
                   <MessageSquare className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{session.title}</span>
+                  <span className="truncate flex-1">{session.title}</span>
+                  {streamingSessionId === session.id && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  )}
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); deleteSession(session.id) }}
@@ -793,7 +804,7 @@ export default function DashboardClient() {
                 </div>
               ))}
 
-              {verification.isStreaming && (
+              {verification.isStreaming && streamingSessionId === currentSessionId && (
                 <div className="space-y-3 animate-[fadeSlideIn_0.15s_ease-out]">
                   {/* Placeholder SYNTAX bubble — appears instantly, replaced by real response */}
                   <div className="flex items-start gap-3">

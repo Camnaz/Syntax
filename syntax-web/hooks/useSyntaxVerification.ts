@@ -256,6 +256,7 @@ export function useSyntaxVerification() {
     setState({
       events: [{ event: 'Settled', data: { total_attempts: 1, final_projection: projection } }] as unknown as LoopEvent[],
       isStreaming: false,
+      startedAt: null,
       error: null,
       finalProjection: projection,
       isTopicRejected: false,
