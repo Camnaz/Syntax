@@ -11,7 +11,7 @@
   --background: #060806;
   --foreground: #ededed;
   /* Olea design tokens */
-  --olea-forest: #2D5A27;
+  --olea-forest: #00D26A;
   --olea-titanium: #A0A0A0;
   --olea-silver: #E5E5E5;
   --olea-risk: #B85450;
@@ -25,20 +25,20 @@
   --font-mono: var(--font-geist-mono);
 
   /* Override emerald → Forest Green (Olea palette) */
-  --color-emerald-50: #f0f7ef;
-  --color-emerald-100: #dceeda;
-  --color-emerald-200: #b8ddb5;
-  --color-emerald-300: #8ec988;
-  --color-emerald-400: #6BBF59;
-  --color-emerald-500: #5AAD4A;
-  --color-emerald-600: #2D5A27;
-  --color-emerald-700: #264E22;
-  --color-emerald-800: #1F411C;
-  --color-emerald-900: #112710;
-  --color-emerald-950: #0a1a08;
+  --color-emerald-50: #E6FAF0;
+  --color-emerald-100: #CCF5E1;
+  --color-emerald-200: #99EBC3;
+  --color-emerald-300: #66E1A4;
+  --color-emerald-400: #33D787;
+  --color-emerald-500: #00D26A;
+  --color-emerald-600: #00A855;
+  --color-emerald-700: #007E40;
+  --color-emerald-800: #00542A;
+  --color-emerald-900: #002A15;
+  --color-emerald-950: #00150A;
 
   /* Olea custom colors */
-  --color-olea-forest: #2D5A27;
+  --color-olea-forest: #00D26A;
   --color-olea-titanium: #A0A0A0;
   --color-olea-silver: #E5E5E5;
   --color-olea-risk: #B85450;
@@ -49,7 +49,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-plusJakartaSans), "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-plusJakartaSans), "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   line-height: 1.7; /* 1.2x increase for data serenity */
   letter-spacing: -0.01em;
   /* Prevent iOS bounce scroll on body */
@@ -111,13 +111,13 @@ body {
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 .micro-glow:hover {
-  box-shadow: 0 0 20px rgba(45, 90, 39, 0.15),
-              0 0 40px rgba(45, 90, 39, 0.05);
-  border-color: rgba(45, 90, 39, 0.3);
+  box-shadow: 0 0 20px rgba(0, 210, 106, 0.15),
+              0 0 40px rgba(0, 210, 106, 0.05);
+  border-color: rgba(0, 210, 106, 0.3);
 }
 
 .micro-glow-subtle:hover {
-  box-shadow: 0 0 12px rgba(45, 90, 39, 0.1);
+  box-shadow: 0 0 12px rgba(0, 210, 106, 0.1);
 }
 
 /* ── Safe-area inset utilities for iOS notch / home indicator ──────────────── */
@@ -175,8 +175,8 @@ body {
 }
 
 @keyframes subtleGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(45, 90, 39, 0.08); }
-  50% { box-shadow: 0 0 30px rgba(45, 90, 39, 0.15); }
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 210, 106, 0.08); }
+  50% { box-shadow: 0 0 30px rgba(0, 210, 106, 0.15); }
 }
 
 /* ── Fluid Grid: scale from 4K to iPhone 15 Pro ───────────────────────────── */
