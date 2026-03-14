@@ -88,7 +88,7 @@ struct GeminiFunctionCall {
 
 impl GeminiProvider {
     pub fn new(api_key: String) -> Self {
-        Self::new_with_model(api_key, "gemini-3.1-flash-lite".to_string())
+        Self::new_with_model(api_key, "gemini-3.1-flash-lite-preview".to_string())
     }
 
     pub fn new_with_model(api_key: String, model: String) -> Self {
@@ -135,7 +135,7 @@ impl LlmProvider for GeminiProvider {
         };
 
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+            "https://generativelanguage.googleapis.com/v1alpha/models/{}:generateContent?key={}",
             self.model, self.api_key
         );
 

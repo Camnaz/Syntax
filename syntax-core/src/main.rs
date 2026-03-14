@@ -356,7 +356,7 @@ async fn main() {
     // Nano engine: uses gemini-2.0-flash — cheap, high quota, runs autonomous research
     let gemini_nano = Arc::new(GeminiProvider::new_with_model(
         gemini_key,
-        "gemini-3.1-flash-lite".to_string(),
+        "gemini-3.1-flash-lite-preview".to_string(),
     ));
     // nano router falls back to itself (no anthropic to avoid costs)
     let nano_router = Arc::new(LlmRouter::new(gemini_nano.clone(), gemini_nano));
