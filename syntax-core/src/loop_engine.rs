@@ -202,7 +202,138 @@ async fn append_research_log(inquiry: &str, best_score: f64, best_attempt: usize
     }
 }
 
-/// Composite fitness score for a projection (higher = better).
+/// Detect if inquiry is a simple portfolio action that should bypass the verification loop.
+/// Returns true for queries like "add $500 of BGS", "buy 10 shares of AAPL", "remove TSLA", etc.
+fn is_simple_portfolio_action(inquiry: &str) -> bool {
+    let lower = inquiry.to_lowercase();
+    // Action keywords + ticker pattern (1-5 uppercase letters)
+    let action_keywords = ["add", "buy", "sell", "remove", "update", "delete", "bought", "sold"];
+    let has_action = action_keywords.iter().any(|kw| lower.contains(kw));
+    
+    // Check for dollar amount pattern ($X) or share count pattern
+    let has_dollar = lower.contains('$');
+    let has_share_words = lower.contains("shares") || lower.contains("share");
+    
+    // Check for ticker pattern (1-5 uppercase letters as a standalone word)
+    let has_ticker = inquiry.split_whitespace().any(|word| {
+        let clean = word.trim_matches(|c: char| !c.is_alphanumeric());
+        clean.len() >= 1 && clean.len() <= 5 && clean.chars().all(|c| c.is_ascii_uppercase())
+    });
+    
+    // It's a simple action if: (has action keyword AND (has dollar OR has share words OR has ticker))
+    has_action && (has_dollar || has_share_words || has_ticker)
+}
+
+/// Fast-path handler for simple portfolio actions — bypasses verification loop entirely.
+/// Uses minimal system prompt focused ONLY on the tool call.
+async fn handle_portfolio_action_tool_only(
+    inquiry: &str,
+    portfolio_id: Uuid,
+    llm_router: &LlmRouter,
+    positions: Option<&Vec<crate::db::Position>>,
+) -> Result<TrajectoryProjection, String> {
+    // Build minimal system prompt for tool-only action
+    let system_prompt = r#"You are SYNTAX — a portfolio assistant. The user is requesting a portfolio update.
+
+CRITICAL: Your ONLY job is to extract the action details and call the `propose_portfolio_actions` tool.
+
+RULES:
+1. Ask for average purchase price if user gave dollar amount (e.g., "$500 of BGS") — you cannot calculate shares without the price they paid.
+2. Confirm ticker matches the company name (e.g., "Do you mean BGS — B&G Foods?").
+3. Keep responses concise — do NOT provide analysis, research, or projections.
+4. Use the propose_portfolio_actions tool with action type: add_position, update_position, or remove_position.
+
+DO NOT:
+- Provide market analysis
+- Give investment advice
+- Calculate Sharpe ratios or drawdowns
+- Suggest rebalancing
+- Return JSON projections
+
+JUST confirm the action and ask for missing info (avg price) if needed."#;
+
+    // Build minimal user prompt with just portfolio context
+    let mut user_prompt = format!("Portfolio ID: {}\n\nUser request: {}\n\n", portfolio_id, inquiry);
+    
+    // Add minimal position context
+    if let Some(pos) = positions {
+        if !pos.is_empty() {
+            user_prompt.push_str("Current positions:\n");
+            for p in pos {
+                if let (Some(shares), Some(avg)) = (p.shares, p.average_purchase_price) {
+                    user_prompt.push_str(&format!("  - {}: {} shares @ ${:.2}\n", p.ticker, shares, avg));
+                } else if let Some(shares) = p.shares {
+                    user_prompt.push_str(&format!("  - {}: {} shares\n", p.ticker, shares));
+                }
+            }
+        } else {
+            user_prompt.push_str("Current positions: None (empty portfolio)\n");
+        }
+    }
+    
+    // Single LLM call with tool
+    let response = llm_router.complete(system_prompt, &user_prompt).await
+        .map_err(|e| format!("LLM call failed: {}", e))?;
+    
+    // Extract pending actions from tool calls
+    let mut extracted_actions: Vec<crate::llm::tools::portfolio::PendingAction> = Vec::new();
+    
+    for call in &response.0.tool_calls {
+        if call.name == "propose_portfolio_actions" {
+            #[derive(Deserialize)]
+            struct ProposeArgs {
+                actions: Vec<crate::llm::tools::portfolio::PendingAction>,
+            }
+            if let Ok(args) = serde_json::from_value::<ProposeArgs>(call.arguments.clone()) {
+                for mut action in args.actions {
+                    action.id = uuid::Uuid::new_v4().to_string();
+                    extracted_actions.push(action);
+                }
+            }
+        } else if call.name == "upsert_portfolio_position" {
+            #[derive(Deserialize)]
+            struct UpsertArgs {
+                ticker: String,
+                shares: Option<f64>,
+                average_purchase_price: Option<f64>,
+            }
+            if let Ok(args) = serde_json::from_value::<UpsertArgs>(call.arguments.clone()) {
+                extracted_actions.push(crate::llm::tools::portfolio::PendingAction {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    action_type: "update_position".to_string(),
+                    description: format!("Update {} to {:?} shares", args.ticker, args.shares),
+                    data: serde_json::json!({
+                        "ticker": args.ticker,
+                        "shares": args.shares,
+                        "average_purchase_price": args.average_purchase_price
+                    }),
+                });
+            }
+        }
+    }
+    
+    if extracted_actions.is_empty() {
+        return Err("No portfolio action extracted from LLM response".to_string());
+    }
+    
+    let reasoning = if response.0.text_with_citations().trim().is_empty() {
+        "Please review and confirm this portfolio update.".to_string()
+    } else {
+        response.0.text_with_citations().trim().to_string()
+    };
+    
+    Ok(TrajectoryProjection {
+        portfolio_id,
+        timestamp: Utc::now(),
+        proposed_allocation: vec![],
+        projected_sharpe: 0.0,
+        projected_max_drawdown: 0.0,
+        confidence_score: 1.0,
+        scenario_chart: None,
+        pending_actions: Some(extracted_actions),
+        reasoning,
+    })
+}
 /// Mirrors the autoresearch-macos `val_bpb` concept: a single scalar
 /// that captures projection quality so the loop can keep the best candidate.
 /// Score = (sharpe / (1 + drawdown×10)) × confidence
@@ -363,6 +494,39 @@ impl VerificationEngine {
                 None
             }
         };
+
+        // === FAST-PATH: Simple portfolio actions bypass verification loop entirely ===
+        if is_simple_portfolio_action(inquiry) {
+            tracing::info!("Fast-path: Detected simple portfolio action, bypassing verification loop");
+            let _ = tx.send(LoopEvent::Attempt {
+                number: 1,
+                provider: "tool-only".to_string(),
+            }).await;
+            
+            match handle_portfolio_action_tool_only(
+                inquiry, 
+                portfolio_id, 
+                &self.llm_router, 
+                positions.as_ref()
+            ).await {
+                Ok(projection) => {
+                    let _ = tx.send(LoopEvent::Settled {
+                        total_attempts: 1,
+                        final_projection: projection.clone(),
+                    }).await;
+                    return LoopOutcome::Settled {
+                        attempts: 1,
+                        projection,
+                        provider_used: "tool-only".to_string(),
+                        cost_cents: 0, // Minimal cost for tool-only call
+                    };
+                }
+                Err(e) => {
+                    tracing::warn!("Fast-path failed, falling back to verification loop: {}", e);
+                    // Continue to verification loop as fallback
+                }
+            }
+        }
 
         // Step 2: Classify inquiry intent for research-directed prompting
         let intent = classify_inquiry_intent(inquiry);
