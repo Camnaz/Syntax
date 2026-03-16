@@ -45,7 +45,7 @@ pub fn upsert_position_declaration() -> crate::llm::tool::FunctionDeclaration {
 pub fn pending_actions_declaration() -> crate::llm::tool::FunctionDeclaration {
     crate::llm::tool::FunctionDeclaration {
         name: "propose_portfolio_actions".to_string(),
-        description: "Propose a set of portfolio actions to the user for confirmation. Use this when the user says they bought/sold a stock, or when you want to suggest trades, cash updates, or risk profile updates. Do not assume any action is final until confirmed. If a user sells a stock, remember to add an action to increase the available cash by the sale amount.".to_string(),
+        description: "Propose a set of portfolio actions to the user for confirmation. Use this when the user says they bought/sold a stock, or when they say 'add $500 of TICKER' / 'buy $X worth of TICKER'. For dollar-amount purchases, ask for the average purchase price if not provided. Keep descriptions concise — do NOT provide long-winded analysis. Just confirm the action details and ask for confirmation.".to_string(),
         parameters: serde_json::json!({
             "type": "object",
             "properties": {
@@ -61,11 +61,11 @@ pub fn pending_actions_declaration() -> crate::llm::tool::FunctionDeclaration {
                             },
                             "description": {
                                 "type": "string",
-                                "description": "A clear, human-readable description of the action (e.g., 'Update Apple (AAPL) position to 50 shares', 'Add $1,500 to available cash')"
+                                "description": "A clear, concise description of the action (e.g., 'Add 5 shares of BGS at $95.00 avg cost', 'Update AAPL to 50 shares'). Keep this brief — one line."
                             },
                             "data": {
                                 "type": "object",
-                                "description": "The specific data for the action (e.g., {\"ticker\": \"AAPL\", \"shares\": 50}, {\"cash_amount\": 1500})"
+                                "description": "The specific data for the action (e.g., {\"ticker\": \"BGS\", \"shares\": 5, \"average_purchase_price\": 95.00})"
                             }
                         },
                         "required": ["type", "description", "data"]

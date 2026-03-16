@@ -343,8 +343,26 @@ impl VerificationEngine {
         }
 
         // Fetch portfolio context from database
-        let portfolio_config = db.get_portfolio(portfolio_id).await.ok().flatten();
-        let positions = db.get_positions(portfolio_id).await.ok();
+        let portfolio_config = match db.get_portfolio(portfolio_id).await {
+            Ok(cfg) => {
+                tracing::info!("Portfolio config loaded: {}", if cfg.is_some() { "found" } else { "not found" });
+                cfg
+            }
+            Err(e) => {
+                tracing::warn!("Portfolio fetch failed (portfolio_id={}): {}", portfolio_id, e);
+                None
+            }
+        };
+        let positions = match db.get_positions(portfolio_id).await {
+            Ok(pos) => {
+                tracing::info!("Positions loaded: {} positions for portfolio {}", pos.len(), portfolio_id);
+                Some(pos)
+            }
+            Err(e) => {
+                tracing::warn!("Positions fetch failed (portfolio_id={}): {}", portfolio_id, e);
+                None
+            }
+        };
 
         // Step 2: Classify inquiry intent for research-directed prompting
         let intent = classify_inquiry_intent(inquiry);
@@ -792,11 +810,14 @@ MARKET CONTEXT:
 RESPONSE FORMAT — TWO PATHS (choose the correct one):
 
 ## PATH A: Direct Portfolio Updates (add/buy/sell/remove specific positions)
-If the user is requesting to ADD, BUY, SELL, REMOVE, or UPDATE a specific stock position:
+If the user is requesting to ADD, BUY, SELL, REMOVE, or UPDATE a specific stock position (including "add $500 of BGS" or "buy $1000 worth of AAPL"):
 - **ONLY use the `propose_portfolio_actions` tool call. Do NOT return any JSON text.**
 - Do NOT calculate a full rebalancing. Do NOT suggest selling other positions unless the user explicitly asked to rebalance.
 - Do NOT return a JSON projection object.
 - Propose ONLY the exact action the user asked for.
+- **CRITICAL: If the user specifies a dollar amount (e.g., "$500 of BGS"), you MUST ask for their average purchase price per share** — you cannot calculate shares without knowing what price they paid.
+- **Confirm the ticker matches the company name** — if user says "BGS", confirm it refers to the correct company (e.g., "Do you mean BGS — B&G Foods?").
+- **DO NOT provide long-winded analysis** — just ask for missing info (avg price) and confirm the action.
 
 ## PATH B: Analysis & Projections (research, what-if, rebalancing analysis)
 If the user is asking for analysis, research, projections, or explicitly wants to rebalance (even a simple conversational question):
@@ -1039,6 +1060,75 @@ RULES:
         }
     }
 
+    /// Strip `// ...` line comments and trailing commas from a JSON-like string so that
+    /// slightly malformed LLM output can still be parsed by serde_json.
+    fn sanitize_json(raw: &str) -> String {
+        let mut out = String::with_capacity(raw.len());
+        let mut in_string = false;
+        let mut escape_next = false;
+        let chars: Vec<char> = raw.chars().collect();
+        let mut i = 0;
+        while i < chars.len() {
+            let ch = chars[i];
+            if escape_next {
+                out.push(ch);
+                escape_next = false;
+                i += 1;
+                continue;
+            }
+            if ch == '\\' && in_string {
+                out.push(ch);
+                escape_next = true;
+                i += 1;
+                continue;
+            }
+            if ch == '"' {
+                in_string = !in_string;
+                out.push(ch);
+                i += 1;
+                continue;
+            }
+            // Escape raw newlines/tabs inside string literals (invalid JSON but LLMs do it)
+            if in_string {
+                match ch {
+                    '\n' => { out.push('\\'); out.push('n'); i += 1; continue; }
+                    '\r' => { i += 1; continue; } // drop bare \r
+                    '\t' => { out.push('\\'); out.push('t'); i += 1; continue; }
+                    _ => {}
+                }
+            }
+            // Strip // line comments only outside strings
+            if !in_string && ch == '/' && i + 1 < chars.len() && chars[i + 1] == '/' {
+                while i < chars.len() && chars[i] != '\n' {
+                    i += 1;
+                }
+                continue;
+            }
+            out.push(ch);
+            i += 1;
+        }
+        // Remove trailing commas before ] or }
+        let out_chars: Vec<char> = out.chars().collect();
+        let mut cleaned = String::with_capacity(out.len());
+        let mut j = 0;
+        while j < out_chars.len() {
+            if out_chars[j] == ',' {
+                // Look ahead for next non-whitespace char
+                let mut k = j + 1;
+                while k < out_chars.len() && (out_chars[k] == ' ' || out_chars[k] == '\t' || out_chars[k] == '\n' || out_chars[k] == '\r') {
+                    k += 1;
+                }
+                if k < out_chars.len() && (out_chars[k] == ']' || out_chars[k] == '}') {
+                    j += 1;
+                    continue; // drop the trailing comma
+                }
+            }
+            cleaned.push(out_chars[j]);
+            j += 1;
+        }
+        cleaned
+    }
+
     fn parse_projection(&self, response: &str, portfolio_id: Uuid) -> Result<TrajectoryProjection, String> {
         // Extract JSON from response (LLM might add text before/after)
         let json_str = if let Some(start) = response.find('{') {
@@ -1050,6 +1140,8 @@ RULES:
         } else {
             response
         };
+        let sanitized = Self::sanitize_json(json_str);
+        let json_str = sanitized.as_str();
 
         #[derive(Deserialize)]
         struct LlmProjection {
