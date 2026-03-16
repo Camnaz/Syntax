@@ -266,7 +266,7 @@ export default function DashboardClient() {
       try {
         const res = await fetch('/api/news')
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json() as { news?: NewsItem[] }
           if (data.news) {
             setNewsItems(data.news)
             // Passively absorb headlines into context for chat
@@ -534,22 +534,23 @@ export default function DashboardClient() {
         successMessage = `System: Successfully removed ${action.data.ticker} from the portfolio.`
       }
       
-      // Auto-trigger a hidden follow-up to the LLM so it acknowledges the change
+      // Append a system confirmation to chat — no LLM call needed
       if (successMessage) {
-        setInquiry(successMessage)
-        setTimeout(() => {
-          const form = document.querySelector('form')
-          if (form) form.requestSubmit()
-        }, 100)
+        const confirmMsg = `✅ ${successMessage}`
+        setChatHistory(prev => [...prev, { role: 'assistant', content: confirmMsg }])
+        if (currentSessionId) {
+          await supabase.from('chat_messages').insert({
+            session_id: currentSessionId,
+            role: 'assistant',
+            content: confirmMsg,
+          })
+        }
       }
     } catch (err) {
       console.error('Failed to execute action:', err)
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-      setInquiry(`System: Failed to execute action ${action.type} for ${action.description}. Error: ${errorMsg}`)
-      setTimeout(() => {
-        const form = document.querySelector('form')
-        if (form) form.requestSubmit()
-      }, 100)
+      const errMsg = `❌ Failed to execute action: ${errorMsg}`
+      setChatHistory(prev => [...prev, { role: 'assistant', content: errMsg }])
     }
   }
 
@@ -648,10 +649,10 @@ export default function DashboardClient() {
               effectiveTier === 'institutional' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 
               'bg-zinc-800 text-zinc-400 border border-zinc-700'
             }`}>
-              {effectiveTier.toUpperCase()}{devTierOverride ? ' ★' : ''}
+              {effectiveTier.toUpperCase()}{isAdminMode ? ' ◆' : devTierOverride ? ' ★' : ''}
             </div>
           </div>
-          {effectiveTier !== 'observer' && (
+          {effectiveTier !== 'observer' ? (
             <button
               onClick={async () => {
                 try {
@@ -662,7 +663,7 @@ export default function DashboardClient() {
                       Authorization: `Bearer ${accessToken}`,
                     },
                   })
-                  const data = await res.json()
+                  const data = await res.json() as { url?: string }
                   if (data.url) window.location.href = data.url
                 } catch (err) {
                   console.error('Portal error:', err)
@@ -672,6 +673,14 @@ export default function DashboardClient() {
             >
               <CreditCard className="h-4 w-4" />
               Manage Subscription
+            </button>
+          ) : !isAdminMode && (
+            <button
+              onClick={() => router.push('/pricing')}
+              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-emerald-400 transition-colors w-full"
+            >
+              <CreditCard className="h-4 w-4" />
+              Upgrade Plan
             </button>
           )}
           <button
@@ -1843,7 +1852,7 @@ function ResearchLogPanel({ accessToken, onClose }: { accessToken: string; onClo
             <div className="flex flex-col gap-3 pt-2">
               <div className="flex items-start gap-2 text-zinc-500">
                 <Activity className="h-3.5 w-3.5 mt-0.5 text-emerald-600 shrink-0 animate-pulse" />
-                <span>Daemon active — running overnight research on your portfolio using <span className="text-emerald-600">gemini-2.0-flash</span>. First results appear here as experiments settle (~60–90s each).</span>
+                <span>Daemon active — running overnight research on your portfolio using <span className="text-emerald-600">gemini-2.5-flash</span>. First results appear here as experiments settle (~60–90s each).</span>
               </div>
               <div className="text-zinc-700 text-xs pl-5">
                 Schedule: overnight every 3 min · pre/post-market every 4 min · market hours every 5 min
@@ -1870,7 +1879,7 @@ function ResearchLogPanel({ accessToken, onClose }: { accessToken: string; onClo
         {/* Footer */}
         <div className="px-4 py-2 border-t border-zinc-800 bg-zinc-900/60 flex items-center justify-between text-xs text-zinc-600 shrink-0">
           <span>{lines.length} results</span>
-          <span className="hidden sm:block">gemini-2.0-flash · auto-scheduled</span>
+          <span className="hidden sm:block">gemini-2.5-flash · auto-scheduled</span>
           <span className="sm:hidden">auto-scheduled</span>
         </div>
       </div>
@@ -1893,7 +1902,7 @@ function UsageWarningBanner({ warning, accessToken, currentTier }: { warning: Us
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ tier: nextTier }),
       })
-      const data = await res.json()
+      const data = await res.json() as { url?: string }
       if (data.url) window.location.href = data.url
     } catch (e) {
       console.error('Upgrade failed:', e)
@@ -1961,7 +1970,7 @@ function FinancialBridgeModal({ onClose, accessToken, currentTier }: { onClose: 
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ tier }),
       })
-      const data = await res.json()
+      const data = await res.json() as { url?: string }
       if (data.url) window.location.href = data.url
     } catch (e) {
       console.error('Upgrade failed:', e)

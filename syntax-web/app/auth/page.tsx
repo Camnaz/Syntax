@@ -106,7 +106,7 @@ export default function AuthPage() {
             </div>
           )}
 
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleAuth} noValidate className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">Email</label>
               <div className="relative">
