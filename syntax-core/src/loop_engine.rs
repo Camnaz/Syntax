@@ -967,12 +967,21 @@ RULES:
         }
 
         if let Some(config) = portfolio_config {
-            let display_capital = if total_position_value > 0.0 {
-                total_position_value
+            // Check if portfolio is truly empty (no positions + no meaningful cash)
+            let has_positions = total_position_value > 0.0;
+            let has_cash = config.available_cash > 0.01; // pennies threshold
+            
+            if !has_positions && !has_cash {
+                prompt.push_str("ACCOUNT STATUS: EMPTY PORTFOLIO — no positions, no capital allocated. This is a fresh portfolio.\n");
+                prompt.push_str("IMPORTANT: Do NOT hallucinate capital amounts. Ask the user what their account size is if needed.\n");
             } else {
-                config.total_capital
-            };
-            prompt.push_str(&format!("ACCOUNT SIZE: ${:.2}\n", display_capital));
+                let display_capital = if has_positions {
+                    total_position_value
+                } else {
+                    config.available_cash
+                };
+                prompt.push_str(&format!("ACCOUNT SIZE: ${:.2}\n", display_capital));
+            }
             prompt.push_str(&format!("RISK PARAMETERS: max drawdown {:.0}% | min Sharpe {:.2} | max position {:.0}%\n\n", 
                 config.max_drawdown_limit * 100.0,
                 config.min_sharpe_ratio,
