@@ -231,6 +231,7 @@ async fn handle_portfolio_action_tool_only(
     portfolio_id: Uuid,
     llm_router: &LlmRouter,
     positions: Option<&Vec<crate::db::Position>>,
+    portfolio_config: Option<&crate::db::Portfolio>,
 ) -> Result<TrajectoryProjection, String> {
     // Build minimal system prompt for tool-only action
     let system_prompt = r#"You are SYNTAX — a portfolio assistant. The user is requesting a portfolio update.
@@ -254,6 +255,18 @@ JUST confirm the action and ask for missing info (avg price) if needed."#;
 
     // Build minimal user prompt with just portfolio context
     let mut user_prompt = format!("Portfolio ID: {}\n\nUser request: {}\n\n", portfolio_id, inquiry);
+    
+    // Add cash balance information explicitly to prevent hallucination
+    if let Some(config) = portfolio_config {
+        let cash = config.available_cash;
+        if cash > 0.01 {
+            user_prompt.push_str(&format!("Available cash: ${:.2}\n", cash));
+        } else {
+            user_prompt.push_str("Available cash: $0.00 (no buying power)\n");
+        }
+    } else {
+        user_prompt.push_str("Available cash: UNKNOWN — ask user to set up their portfolio first\n");
+    }
     
     // Add minimal position context
     if let Some(pos) = positions {
@@ -507,7 +520,8 @@ impl VerificationEngine {
                 inquiry, 
                 portfolio_id, 
                 &self.llm_router, 
-                positions.as_ref()
+                positions.as_ref(),
+                portfolio_config.as_ref(),
             ).await {
                 Ok(projection) => {
                     let _ = tx.send(LoopEvent::Settled {
