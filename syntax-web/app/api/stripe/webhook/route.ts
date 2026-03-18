@@ -16,19 +16,21 @@ const CONFIGURED_ID_TO_TIER: Record<string, string> = {
   [process.env.STRIPE_PRICE_INSTITUTIONAL!]: 'institutional',
 }
 
-const TIER_LIMITS: Record<string, number> = {
-  observer: 3,
-  operator: 100,
-  sovereign: 500,
-  institutional: 9999,
+// Weekly/monthly/yearly verification limits per tier
+const TIER_LIMITS: Record<string, { weekly: number; monthly: number; yearly: number }> = {
+  observer: { weekly: 0, monthly: 3, yearly: 3 },      // 3 total lifetime
+  operator: { weekly: 100, monthly: 400, yearly: 5200 },  // 100/week hard limit (profit protection)
+  sovereign: { weekly: 0, monthly: 500, yearly: 6000 },  // 500/month
+  institutional: { weekly: 0, monthly: 833, yearly: 10000 }, // 10K/year = ~833/month
 }
 
 // Cost ceilings in cents — ensures ≥60% gross margin per tier
+// Operator: $5/week = $20/month revenue, $0.70/week cost (100 × $0.007) = 86% margin ✓
 const TIER_COST_LIMITS: Record<string, number> = {
-  observer: 50,       // $0.50 — free tier, absorb as CAC
-  operator: 1000,     // $10.00 — $29 revenue = 65.5% margin
-  sovereign: 3500,    // $35.00 — $99 revenue = 64.6% margin
-  institutional: 17500, // $175.00 — $499 revenue = 64.9% margin
+  observer: 50,        // $0.50 — free tier, absorb as CAC
+  operator: 300,        // $3.00/week max cost (60% margin on $5/week)
+  sovereign: 1200,      // $12.00/month max cost (60% margin on $29/month)
+  institutional: 12000, // $120/year max cost (60% margin on $299/year)
 }
 
 // Resolve a price ID from a webhook event to a tier
@@ -74,14 +76,17 @@ export async function POST(req: NextRequest) {
         const tier = session.metadata?.tier
 
         if (userId && tier) {
+          const limits = TIER_LIMITS[tier] ?? TIER_LIMITS['operator']
           await supabaseAdmin
             .from('user_subscriptions')
             .update({
               tier,
               stripe_subscription_id: session.subscription as string,
-              monthly_verifications_limit: TIER_LIMITS[tier] ?? 100,
+              monthly_verifications_limit: limits.monthly,
+              weekly_verifications_limit: limits.weekly,
+              yearly_verifications_limit: limits.yearly,
               monthly_verifications_used: 0,
-              cost_limit_cents: TIER_COST_LIMITS[tier] ?? 50,
+              cost_limit_cents: TIER_COST_LIMITS[tier] ?? 300,
               monthly_cost_cents: 0,
               billing_cycle_start: new Date().toISOString(),
               updated_at: new Date().toISOString(),
@@ -104,13 +109,16 @@ export async function POST(req: NextRequest) {
             .eq('stripe_customer_id', customerId)
             .single()
 
+          const limits = TIER_LIMITS[tier] ?? TIER_LIMITS['operator']
           if (sub) {
             await supabaseAdmin
               .from('user_subscriptions')
               .update({
                 tier,
-                monthly_verifications_limit: TIER_LIMITS[tier] ?? 100,
-                cost_limit_cents: TIER_COST_LIMITS[tier] ?? 50,
+                monthly_verifications_limit: limits.monthly,
+                weekly_verifications_limit: limits.weekly,
+                yearly_verifications_limit: limits.yearly,
+                cost_limit_cents: TIER_COST_LIMITS[tier] ?? 300,
                 updated_at: new Date().toISOString(),
               })
               .eq('user_id', sub.user_id)
@@ -135,7 +143,9 @@ export async function POST(req: NextRequest) {
             .update({
               tier: 'observer',
               stripe_subscription_id: null,
-              monthly_verifications_limit: TIER_LIMITS['observer'],
+              monthly_verifications_limit: TIER_LIMITS['observer'].monthly,
+              weekly_verifications_limit: TIER_LIMITS['observer'].weekly,
+              yearly_verifications_limit: TIER_LIMITS['observer'].yearly,
               cost_limit_cents: TIER_COST_LIMITS['observer'],
               monthly_cost_cents: 0,
               updated_at: new Date().toISOString(),
