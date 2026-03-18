@@ -88,18 +88,18 @@ struct GeminiFunctionCall {
 
 impl GeminiProvider {
     pub fn new(api_key: String) -> Self {
-        // Default to ultra-cheap Flash-Lite for most operations
-        Self::new_with_model(api_key, "gemini-2.5-flash-lite".to_string())
+        // Use stable 2.0 Flash-Lite — 2.5 hits demand limits
+        Self::new_with_model(api_key, "gemini-2.0-flash-lite".to_string())
     }
 
     pub fn new_flash_standard(api_key: String) -> Self {
         // Standard Flash for complex analysis
-        Self::new_with_model(api_key, "gemini-2.5-flash".to_string())
+        Self::new_with_model(api_key, "gemini-2.0-flash".to_string())
     }
 
     pub fn new_flash_pro(api_key: String) -> Self {
         // Pro for deep research tasks
-        Self::new_with_model(api_key, "gemini-2.5-pro".to_string())
+        Self::new_with_model(api_key, "gemini-2.0-flash".to_string())
     }
 
     pub fn new_with_model(api_key: String, model: String) -> Self {
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn test_provider_name() {
         let provider = GeminiProvider::new("test-key".to_string());
-        // Default is now flash-lite for cost optimization
-        assert_eq!(provider.name(), "gemini-flash-lite");
+        // Stable 2.0 Flash-Lite — 2.5 has demand issues
+        assert_eq!(provider.name(), "gemini-2.0-flash-lite");
     }
 }

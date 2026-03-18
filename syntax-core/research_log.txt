@@ -333,3 +333,71 @@
 [2026-03-18T13:26:52Z] exp=0309 score=0.9225 sharpe=1.34 dd=3.8% conf=95% attempts=3 | Identify any overnight news catalysts affecting my holdings
 [2026-03-18T13:27:13Z] exp=0310 score=0.9781 sharpe=1.39 dd=3.5% conf=95% attempts=3 | Identify any overnight news catalysts affecting my holdings
 [2026-03-18T13:27:33Z] exp=0311 score=0.9600 sharpe=1.38 dd=3.8% conf=96% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T13:31:54Z] exp=0312 score=0.9672 sharpe=1.42 dd=3.8% conf=94% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T13:32:17Z] exp=0313 score=1.1611 sharpe=1.58 dd=3.2% conf=97% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T13:32:39Z] exp=0314 score=1.2770 sharpe=1.72 dd=3.2% conf=98% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T13:33:00Z] exp=0315 score=1.1387 sharpe=1.62 dd=3.8% conf=97% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T13:37:20Z] exp=0316 score=1.0296 sharpe=1.48 dd=3.8% conf=96% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T13:37:41Z] exp=0317 score=0.9982 sharpe=1.45 dd=3.8% conf=95% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T13:38:01Z] exp=0318 score=1.0574 sharpe=1.52 dd=3.8% conf=96% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T13:38:21Z] exp=0319 score=1.0895 sharpe=1.55 dd=3.8% conf=97% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T13:42:42Z] exp=0320 score=1.0009 sharpe=1.48 dd=3.9% conf=94% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T13:43:04Z] exp=0321 score=0.9467 sharpe=1.42 dd=3.8% conf=92% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T13:43:24Z] exp=0322 score=0.9901 sharpe=1.48 dd=4.2% conf=95% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T13:43:46Z] exp=0323 score=0.9432 sharpe=1.38 dd=3.9% conf=95% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T13:48:08Z] exp=0324 score=0.9667 sharpe=1.45 dd=3.8% conf=92% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T13:48:28Z] exp=0325 score=0.9672 sharpe=1.42 dd=3.8% conf=94% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T13:48:49Z] exp=0326 score=1.0115 sharpe=1.48 dd=3.9% conf=95% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T13:49:11Z] exp=0327 score=1.0222 sharpe=1.48 dd=3.9% conf=96% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T13:53:33Z] exp=0328 score=0.9667 sharpe=1.45 dd=3.8% conf=92% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T13:53:54Z] exp=0329 score=1.1353 sharpe=1.58 dd=3.5% conf=97% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T13:54:14Z] exp=0330 score=1.0895 sharpe=1.55 dd=3.8% conf=97% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T13:54:35Z] exp=0331 score=1.2027 sharpe=1.62 dd=3.2% conf=98% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T13:59:00Z] exp=0332 score=0.9867 sharpe=1.48 dd=3.8% conf=92% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T13:59:20Z] exp=0333 score=1.1236 sharpe=1.58 dd=3.5% conf=96% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T13:59:40Z] exp=0334 score=1.0188 sharpe=1.48 dd=3.8% conf=95% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:00:00Z] exp=0335 score=0.9600 sharpe=1.38 dd=3.8% conf=96% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:04:23Z] exp=0336 score=0.9467 sharpe=1.42 dd=3.8% conf=92% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:04:43Z] exp=0337 score=0.9391 sharpe=1.35 dd=3.8% conf=96% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:05:04Z] exp=0338 score=0.9770 sharpe=1.39 dd=3.8% conf=97% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:05:26Z] exp=0339 score=0.9637 sharpe=1.41 dd=3.9% conf=95% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:09:46Z] exp=0340 score=0.9878 sharpe=1.42 dd=3.8% conf=96% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:10:06Z] exp=0341 score=1.0824 sharpe=1.48 dd=3.4% conf=98% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:10:27Z] exp=0342 score=0.9667 sharpe=1.45 dd=3.8% conf=92% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:10:46Z] exp=0343 score=1.0188 sharpe=1.48 dd=3.8% conf=95% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:15:09Z] exp=0344 score=1.0081 sharpe=1.48 dd=3.8% conf=94% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:15:34Z] exp=0345 score=1.1387 sharpe=1.62 dd=3.8% conf=97% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:15:56Z] exp=0346 score=1.2704 sharpe=1.75 dd=3.5% conf=98% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:16:17Z] exp=0347 score=1.0013 sharpe=1.41 dd=3.8% conf=98% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:20:38Z] exp=0348 score=0.9705 sharpe=1.42 dd=3.9% conf=95% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:20:59Z] exp=0349 score=1.0014 sharpe=1.45 dd=3.9% conf=96% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:21:22Z] exp=0350 score=1.0328 sharpe=1.48 dd=3.9% conf=97% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:21:42Z] exp=0351 score=1.0328 sharpe=1.48 dd=3.9% conf=97% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:26:02Z] exp=0352 score=0.8902 sharpe=1.35 dd=3.8% conf=91% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:26:25Z] exp=0353 score=0.9467 sharpe=1.42 dd=3.8% conf=92% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:26:46Z] exp=0354 score=1.2196 sharpe=1.68 dd=3.5% conf=98% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:27:06Z] exp=0355 score=1.0188 sharpe=1.48 dd=3.8% conf=95% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:31:27Z] exp=0356 score=1.0188 sharpe=1.48 dd=3.8% conf=95% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:31:47Z] exp=0357 score=1.0084 sharpe=1.42 dd=3.8% conf=98% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:32:10Z] exp=0358 score=1.0204 sharpe=1.45 dd=3.5% conf=95% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:32:30Z] exp=0359 score=0.9637 sharpe=1.41 dd=3.9% conf=95% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:36:53Z] exp=0360 score=0.9867 sharpe=1.48 dd=3.8% conf=92% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:37:15Z] exp=0361 score=1.1875 sharpe=1.65 dd=3.2% conf=95% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:37:37Z] exp=0362 score=1.1400 sharpe=1.62 dd=3.5% conf=95% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:37:59Z] exp=0363 score=1.3067 sharpe=1.72 dd=2.9% conf=98% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:42:21Z] exp=0364 score=1.1443 sharpe=1.68 dd=3.8% conf=94% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:42:42Z] exp=0365 score=1.0403 sharpe=1.48 dd=3.8% conf=97% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:43:04Z] exp=0366 score=0.9981 sharpe=1.42 dd=3.8% conf=97% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:43:24Z] exp=0367 score=1.0895 sharpe=1.55 dd=3.8% conf=97% attempts=3 | Prepare a morning briefing: key risks and opportunities for today
+[2026-03-18T14:47:46Z] exp=0368 score=1.0296 sharpe=1.48 dd=3.8% conf=96% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:48:07Z] exp=0369 score=1.0087 sharpe=1.45 dd=3.8% conf=96% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:48:29Z] exp=0370 score=1.1856 sharpe=1.65 dd=3.5% conf=97% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:48:50Z] exp=0371 score=1.0203 sharpe=1.42 dd=3.5% conf=97% attempts=3 | What positions should I size up or down at market open
+[2026-03-18T14:53:11Z] exp=0372 score=0.9867 sharpe=1.48 dd=3.8% conf=92% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:53:32Z] exp=0373 score=0.9877 sharpe=1.45 dd=3.8% conf=94% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:53:53Z] exp=0374 score=1.0188 sharpe=1.48 dd=3.8% conf=95% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:54:13Z] exp=0375 score=0.9672 sharpe=1.42 dd=3.8% conf=94% attempts=3 | Identify any overnight news catalysts affecting my holdings
+[2026-03-18T14:58:34Z] exp=0376 score=1.0783 sharpe=1.55 dd=3.8% conf=96% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:58:55Z] exp=0377 score=1.1387 sharpe=1.62 dd=3.8% conf=97% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:59:15Z] exp=0378 score=1.2196 sharpe=1.68 dd=3.5% conf=98% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
+[2026-03-18T14:59:36Z] exp=0379 score=1.2900 sharpe=1.72 dd=3.2% conf=99% attempts=3 | Suggest a pre-market watchlist based on my current portfolio
