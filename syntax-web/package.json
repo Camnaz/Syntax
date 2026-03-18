@@ -10,8 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "pages:build": "npx @cloudflare/next-on-pages",
-    "pages:dev": "npx @cloudflare/next-on-pages --watch"
+    "cf:build": "NEXT_PUBLIC_SUPABASE_URL=https://zlxskwovmkidsezdxpzv.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpseHNrd292bWtpZHNlemR4cHp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDg2NzIsImV4cCI6MjA4ODkyNDY3Mn0.VYx6VTlNlY3FfDG2-4fzEpRWXnxwWUzo_dx4axdVEs0 NEXT_PUBLIC_SITE_URL=https://syntax.oleacomputer.com NEXT_PUBLIC_SYNTAX_API_URL=https://syntax-api.oleacomputer.com NEXT_PUBLIC_DEV_MODE=false opennextjs-cloudflare build",
+    "cf:preview": "npm run cf:build && opennextjs-cloudflare preview",
+    "cf:deploy": "npm run cf:build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@stripe/stripe-js": "^2.4.0",
@@ -29,6 +30,8 @@
     "stripe": "^14.14.0"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.17.1",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -42,6 +45,7 @@
     "jsdom": "^25.0.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "wrangler": "^4.73.0"
   }
 }

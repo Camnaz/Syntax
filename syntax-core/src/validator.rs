@@ -20,14 +20,22 @@ pub struct TrajectoryProjection {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScenarioChartParams {
     pub enabled: bool,
-    pub initial_capital: f64,
-    pub time_horizon_days: u32,
-    pub bull_annual_return: f64,
-    pub base_annual_return: f64,
-    pub bear_annual_return: f64,
-    pub volatility: f64,
-    pub dca_monthly_amount: f64,
-    pub suggested_sell_points: Vec<u32>,
+    #[serde(default)]
+    pub initial_capital: Option<f64>,
+    #[serde(default)]
+    pub time_horizon_days: Option<u32>,
+    #[serde(default)]
+    pub bull_annual_return: Option<f64>,
+    #[serde(default)]
+    pub base_annual_return: Option<f64>,
+    #[serde(default)]
+    pub bear_annual_return: Option<f64>,
+    #[serde(default)]
+    pub volatility: Option<f64>,
+    #[serde(default)]
+    pub dca_monthly_amount: Option<f64>,
+    #[serde(default)]
+    pub suggested_sell_points: Vec<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,9 +129,20 @@ pub async fn validate_trajectory(
     projection: &mut TrajectoryProjection,
     constraints: &PortfolioConstraints,
 ) -> Result<(), ValidationError> {
+    // If the LLM returned an empty allocation (conversational/no-data response),
+    // skip all metric checks — the reasoning field carries the value.
+    if projection.proposed_allocation.is_empty() {
+        return Ok(());
+    }
+
     // Keep strict structural constraints (position size) regardless of metric source.
+    // CASH / USD are exempt — holding cash is always valid at any concentration.
     for allocation in &projection.proposed_allocation {
-        if allocation.weight > constraints.max_position_size_pct {
+        let is_cash = matches!(
+            allocation.ticker.to_uppercase().as_str(),
+            "CASH" | "USD" | "CASH_USD" | "USDC" | "USDT"
+        );
+        if !is_cash && allocation.weight > constraints.max_position_size_pct {
             return Err(ValidationError::PositionTooLarge {
                 ticker: allocation.ticker.clone(),
                 weight: allocation.weight,

@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
         { next: { revalidate: 60 } }
       )
       if (res.ok) {
-        const data = await res.json()
+        const data = await res.json() as { c?: number; d?: number; dp?: number }
         if (data.c && data.c !== 0) {
           return NextResponse.json({
             ticker,
             currentPrice: data.c,
-            change: data.d || 0,
-            changePercent: data.dp || 0,
+            change: data.d ?? 0,
+            changePercent: data.dp ?? 0,
             source: 'Finnhub',
           })
         }
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         { next: { revalidate: 60 } }
       )
       if (res.ok) {
-        const data = await res.json()
+        const data = await res.json() as { price?: string; status?: string }
         if (data.price && data.status !== 'error') {
           return NextResponse.json({
             ticker,
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       { next: { revalidate: 60 } }
     )
     if (res.ok) {
-      const data = await res.json()
+      const data = await res.json() as { chart?: { result?: Array<{ meta?: { regularMarketPrice?: number; chartPreviousClose?: number } }> } }
       const meta = data?.chart?.result?.[0]?.meta
       if (meta?.regularMarketPrice) {
         const prev = meta.chartPreviousClose || meta.regularMarketPrice

@@ -1,11 +1,22 @@
 name = "syntax-web"
-compatibility_date = "2024-09-23"
+main = ".open-next/worker.js"
+compatibility_date = "2025-09-11"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".vercel/output/static"
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[ai]
+binding = "AI"
+
+[[routes]]
+pattern = "syntax.oleacomputer.com/*"
+zone_name = "oleacomputer.com"
 
 [vars]
-# Non-secret env vars — secrets are set in Cloudflare Pages dashboard
+# Non-secret env vars — secrets are set in Cloudflare Workers dashboard
 NEXT_PUBLIC_OBSERVER_FREE_VERIFICATIONS = "3"
 # NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SYNTAX_API_URL,
-# NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_FINNHUB_API_KEY — set these in the Cloudflare Pages
-# dashboard under Settings > Environment Variables (do NOT put secrets here)
+# NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_FINNHUB_API_KEY, STRIPE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY
+# — set these as encrypted secrets in the Cloudflare Workers dashboard

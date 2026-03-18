@@ -353,13 +353,15 @@ async fn main() {
         10,
     ));
 
-    // Nano engine: uses gemini-2.0-flash — cheap, high quota, runs autonomous research
+    // Nano engine: Gemini primary (fast + cheap), Anthropic fallback for quota resilience
     let gemini_nano = Arc::new(GeminiProvider::new_with_model(
         gemini_key,
-        "gemini-3.1-flash-lite-preview".to_string(),
+        "gemini-2.5-flash".to_string(),
     ));
-    // nano router falls back to itself (no anthropic to avoid costs)
-    let nano_router = Arc::new(LlmRouter::new(gemini_nano.clone(), gemini_nano));
+    let anthropic_nano = Arc::new(AnthropicProvider::new(
+        std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set"),
+    ));
+    let nano_router = Arc::new(LlmRouter::new(gemini_nano, anthropic_nano));
     let nano_engine = Arc::new(VerificationEngine::new(
         nano_router,
         PortfolioConstraints::default(),

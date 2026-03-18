@@ -27,13 +27,14 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let session = null
+  try {
+    const result = await supabase.auth.getSession()
+    session = result.data.session
+  } catch {}
 
   if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
+    !session &&
     request.nextUrl.pathname.startsWith('/dashboard')
   ) {
     const url = request.nextUrl.clone()

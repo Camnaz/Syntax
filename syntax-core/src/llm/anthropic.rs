@@ -67,8 +67,8 @@ impl AnthropicProvider {
 impl LlmProvider for AnthropicProvider {
     async fn complete(&self, system: &str, user: &str) -> Result<LlmResponse, LlmError> {
         let request = AnthropicRequest {
-            model: "claude-3-5-haiku-20241022".to_string(),
-            max_tokens: 4096,
+            model: "claude-haiku-4-5-20251001".to_string(),
+            max_tokens: 8192,
             system: system.to_string(),
             messages: vec![Message {
                 role: "user".to_string(),
@@ -128,6 +128,7 @@ impl LlmProvider for AnthropicProvider {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
+            tracing::warn!("Anthropic HTTP {}: {}", status, &body[..body.len().min(300)]);
             // Circuit breaker: 429 (rate limit / resource exhaustion) or 400 (billing constraint)
             if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
                 return Err(LlmError::CreditsExhausted(format!(

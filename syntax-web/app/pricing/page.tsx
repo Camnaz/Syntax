@@ -123,7 +123,7 @@ export default function PricingPage() {
         },
         body: JSON.stringify({ tier: tierKey }),
       })
-      const data = await res.json()
+      const data = await res.json() as { url?: string }
       if (data.url) {
         window.location.href = data.url
       }

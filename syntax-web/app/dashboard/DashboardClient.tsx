@@ -1224,15 +1224,17 @@ function ProjectionArtifact({ projection }: { projection: TrajectoryProjection }
   const advancedScenarioData = useMemo(() => {
     if (!projection.scenario_chart?.enabled) return []
     const p = projection.scenario_chart
-    const numPoints = Math.min(Math.max(p.time_horizon_days, 10), 100) // Render up to 100 points
-    const daysPerPoint = Math.max(1, Math.floor(p.time_horizon_days / numPoints))
+    const horizon = p.time_horizon_days ?? 365
+    const initialCap = p.initial_capital ?? 1000
+    const numPoints = Math.min(Math.max(horizon, 10), 100) // Render up to 100 points
+    const daysPerPoint = Math.max(1, Math.floor(horizon / numPoints))
     
     const data = []
-    let currentBull = p.initial_capital
-    let currentBase = p.initial_capital
-    let currentBear = p.initial_capital
+    let currentBull = initialCap
+    let currentBase = initialCap
+    let currentBear = initialCap
 
-    const dcaDaily = (p.dca_monthly_amount * 12) / 365
+    const dcaDaily = ((p.dca_monthly_amount ?? 0) * 12) / 365
     
     // Simple deterministic PRNG so chart doesn't jitter on re-renders
     let seed = 1
@@ -1245,12 +1247,12 @@ function ProjectionArtifact({ projection }: { projection: TrajectoryProjection }
       const day = i * daysPerPoint
       
       // Calculate continuous returns
-      const bullDailyRet = Math.pow(1 + p.bull_annual_return, 1/365) - 1
-      const baseDailyRet = Math.pow(1 + p.base_annual_return, 1/365) - 1
-      const bearDailyRet = Math.pow(1 + p.bear_annual_return, 1/365) - 1
+      const bullDailyRet = Math.pow(1 + (p.bull_annual_return ?? 0.12), 1/365) - 1
+      const baseDailyRet = Math.pow(1 + (p.base_annual_return ?? 0.06), 1/365) - 1
+      const bearDailyRet = Math.pow(1 + (p.bear_annual_return ?? -0.10), 1/365) - 1
       
       // Generate geometric brownian motion for choppiness
-      const dailyVol = p.volatility / Math.sqrt(365)
+      const dailyVol = (p.volatility ?? 0.2) / Math.sqrt(365)
       
       // We apply the accumulated changes over 'daysPerPoint' days
       for(let d=0; d<daysPerPoint; d++) {
@@ -1264,6 +1266,7 @@ function ProjectionArtifact({ projection }: { projection: TrajectoryProjection }
         currentBear = currentBear * (1 + bearDailyRet + dailyVol * zBear) + dcaDaily
       }
 
+      const sellPts = p.suggested_sell_points ?? []
       data.push({
         day: day,
         label: day < 30 ? `Day ${day}` : day < 365 ? `Mo ${Math.round(day/30)}` : `Yr ${(day/365).toFixed(1)}`,
@@ -1271,7 +1274,7 @@ function ProjectionArtifact({ projection }: { projection: TrajectoryProjection }
         base: Math.round(currentBase),
         bear: Math.round(currentBear),
         // Flag sell points
-        isSellPoint: p.suggested_sell_points.includes(day) || p.suggested_sell_points.some(sp => sp > day - daysPerPoint && sp <= day)
+        isSellPoint: sellPts.includes(day) || sellPts.some((sp: number) => sp > day - daysPerPoint && sp <= day)
       })
     }
     return data
@@ -1456,7 +1459,7 @@ function ProjectionArtifact({ projection }: { projection: TrajectoryProjection }
           {activeTab === 'scenario_engine' && projection.scenario_chart && (
             <div>
               <div className="text-xs text-zinc-500 mb-3 flex items-center justify-between">
-                <span>Scenario Engine: ${projection.scenario_chart.initial_capital.toLocaleString()} + ${projection.scenario_chart.dca_monthly_amount.toLocaleString()}/mo DCA</span>
+                <span>Scenario Engine: ${(projection.scenario_chart.initial_capital ?? 0).toLocaleString()} + ${(projection.scenario_chart.dca_monthly_amount ?? 0).toLocaleString()}/mo DCA</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> Sell Points</span>
               </div>
               <ResponsiveContainer width="100%" height={260}>
@@ -1889,6 +1892,7 @@ function ResearchLogPanel({ accessToken, onClose }: { accessToken: string; onClo
 
 function UsageWarningBanner({ warning, accessToken, currentTier }: { warning: UsageWarningData; accessToken: string; currentTier: string }) {
   const [isUpgrading, setIsUpgrading] = useState(false)
+  const [upgradeError, setUpgradeError] = useState<string | null>(null)
   const pct = warning.limit_cents > 0 ? Math.round((warning.current_cost_cents / warning.limit_cents) * 100) : 0
   const isBlocked = warning.warning_level === 'blocked'
   const nextTier = currentTier === 'observer' ? 'operator' : currentTier === 'operator' ? 'sovereign' : currentTier === 'sovereign' ? 'institutional' : null
@@ -1896,16 +1900,29 @@ function UsageWarningBanner({ warning, accessToken, currentTier }: { warning: Us
   const handleUpgrade = async () => {
     if (!nextTier) return
     setIsUpgrading(true)
+    setUpgradeError(null)
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ tier: nextTier }),
       })
-      const data = await res.json() as { url?: string }
-      if (data.url) window.location.href = data.url
+      if (!res.ok) {
+        const errorText = await res.text()
+        throw new Error(`Server error: ${res.status} ${errorText}`)
+      }
+      const data = await res.json() as { url?: string; error?: string }
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL received from server')
+      }
     } catch (e) {
       console.error('Upgrade failed:', e)
+      setUpgradeError(e instanceof Error ? e.message : 'Failed to start checkout. Please try again.')
     } finally {
       setIsUpgrading(false)
     }
@@ -1954,6 +1971,12 @@ function UsageWarningBanner({ warning, accessToken, currentTier }: { warning: Us
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
+      {/* Error message */}
+      {upgradeError && (
+        <div className="mt-2 text-xs text-red-400 bg-red-950/30 border border-red-500/30 rounded-lg px-3 py-2">
+          <span className="font-semibold">Error:</span> {upgradeError}
+        </div>
+      )}
     </div>
   )
 }

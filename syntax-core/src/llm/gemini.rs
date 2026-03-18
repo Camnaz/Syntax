@@ -88,13 +88,24 @@ struct GeminiFunctionCall {
 
 impl GeminiProvider {
     pub fn new(api_key: String) -> Self {
-        Self::new_with_model(api_key, "gemini-3.1-flash-lite-preview".to_string())
+        // Default to ultra-cheap Flash-Lite for most operations
+        Self::new_with_model(api_key, "gemini-2.5-flash-lite".to_string())
+    }
+
+    pub fn new_flash_standard(api_key: String) -> Self {
+        // Standard Flash for complex analysis
+        Self::new_with_model(api_key, "gemini-2.5-flash".to_string())
+    }
+
+    pub fn new_flash_pro(api_key: String) -> Self {
+        // Pro for deep research tasks
+        Self::new_with_model(api_key, "gemini-2.5-pro".to_string())
     }
 
     pub fn new_with_model(api_key: String, model: String) -> Self {
         let client = reqwest::Client::builder()
-            .connect_timeout(Duration::from_secs(10))
-            .timeout(Duration::from_secs(60))
+            .connect_timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(25))
             .build()
             .unwrap_or_default();
         Self {
@@ -120,16 +131,13 @@ impl LlmProvider for GeminiProvider {
                 }],
             },
             generation_config: GenerationConfig {
-                max_output_tokens: 4096,
+                max_output_tokens: 8192,
                 response_mime_type: None,
             },
             tools: vec![
                 ToolWrapper {
                     google_search: Some(GoogleSearchTool {}),
-                    function_declarations: Some(vec![
-                        crate::llm::tools::portfolio::upsert_position_declaration(),
-                        crate::llm::tools::portfolio::pending_actions_declaration()
-                    ]),
+                    function_declarations: None,
                 },
             ],
         };
@@ -214,7 +222,14 @@ impl LlmProvider for GeminiProvider {
     }
 
     fn name(&self) -> &'static str {
-        "gemini"
+        // Return tiered name for cost tracking
+        if self.model.contains("flash-lite") {
+            "gemini-flash-lite"
+        } else if self.model.contains("pro") && !self.model.contains("flash") {
+            "gemini-pro"
+        } else {
+            "gemini"
+        }
     }
 }
 

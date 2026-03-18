@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { tier } = await req.json()
+    const { tier } = await req.json() as { tier: string }
     let priceId = TIER_PRICE_MAP[tier]
     if (!priceId) {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })

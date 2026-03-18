@@ -1,10 +1,14 @@
 use crate::llm::{LlmError, LlmProvider};
 use crate::llm::tool::LlmResponse;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 pub struct LlmRouter {
     primary: Arc<dyn LlmProvider>,
     fallback: Arc<dyn LlmProvider>,
+    /// Set to true once the primary returns CreditsExhausted.
+    /// Subsequent calls skip the primary entirely to avoid noise + wasted round-trips.
+    primary_exhausted: AtomicBool,
 }
 
 fn is_valid(r: &LlmResponse) -> bool {
@@ -13,12 +17,35 @@ fn is_valid(r: &LlmResponse) -> bool {
 
 impl LlmRouter {
     pub fn new(primary: Arc<dyn LlmProvider>, fallback: Arc<dyn LlmProvider>) -> Self {
-        Self { primary, fallback }
+        Self { primary, fallback, primary_exhausted: AtomicBool::new(false) }
     }
 
     /// Race both providers in parallel. First valid response wins.
-    /// If the winner returned empty/error, the other result is checked.
+    /// If primary is credits-exhausted (circuit open), only fallback is used.
     pub async fn complete(&self, system: &str, user: &str) -> Result<(LlmResponse, &'static str), LlmError> {
+        let fallback_name = self.fallback.name();
+
+        // Fast path: primary circuit is open — skip it entirely
+        if self.primary_exhausted.load(Ordering::Relaxed) {
+            let f = Arc::clone(&self.fallback);
+            let sys_f = system.to_owned();
+            let usr_f = user.to_owned();
+            return match f.complete(&sys_f, &usr_f).await {
+                Ok(resp) if is_valid(&resp) => Ok((resp, fallback_name)),
+                Ok(_) => Err(LlmError::AllProvidersFailed {
+                    primary_error: "primary circuit open (credits exhausted)".to_string(),
+                    fallback_error: format!("{} returned empty", fallback_name),
+                }),
+                Err(e) => {
+                    tracing::warn!("Fast-path: {} also failed: {}", fallback_name, e);
+                    Err(LlmError::AllProvidersFailed {
+                        primary_error: "primary circuit open (credits exhausted)".to_string(),
+                        fallback_error: e.to_string(),
+                    })
+                }
+            };
+        }
+
         let p = Arc::clone(&self.primary);
         let f = Arc::clone(&self.fallback);
         let sys_p = system.to_owned();
@@ -45,6 +72,11 @@ impl LlmRouter {
                     first => {
                         let first_err = match first {
                             Ok(_) => format!("{} returned empty", primary_name),
+                            Err(LlmError::CreditsExhausted(_)) => {
+                                self.primary_exhausted.store(true, Ordering::Relaxed);
+                                tracing::warn!("Race: {} credits exhausted — circuit open, routing to fallback only", primary_name);
+                                format!("{} credits exhausted", primary_name)
+                            }
                             Err(e) => { tracing::warn!("Race: {} failed: {}", primary_name, e); e.to_string() }
                         };
                         // Wait for fallback
@@ -57,10 +89,13 @@ impl LlmRouter {
                                 primary_error: first_err,
                                 fallback_error: format!("{} returned empty", fallback_name),
                             }),
-                            Ok(Err(e)) => Err(LlmError::AllProvidersFailed {
-                                primary_error: first_err,
-                                fallback_error: e.to_string(),
-                            }),
+                            Ok(Err(e)) => {
+                                tracing::warn!("Race: {} also failed: {}", fallback_name, e);
+                                Err(LlmError::AllProvidersFailed {
+                                    primary_error: first_err,
+                                    fallback_error: e.to_string(),
+                                })
+                            }
                             Err(e) => Err(LlmError::RequestFailed(e.to_string())),
                         }
                     }
@@ -122,6 +157,7 @@ mod tests {
                     tool_calls: vec![],
                     input_tokens_estimate: 0,
                     output_tokens_estimate: 0,
+                    grounding_metadata: None,
                 })
             }
         }

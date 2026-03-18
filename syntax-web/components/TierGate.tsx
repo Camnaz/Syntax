@@ -164,7 +164,7 @@ async function handleStripeCheckout(tier: string, accessToken?: string) {
       },
       body: JSON.stringify({ tier }),
     })
-    const data = await res.json()
+    const data = await res.json() as { url?: string; error?: string }
     if (data.url) window.location.href = data.url
     else console.error('Stripe checkout error:', data.error)
   } catch (err) {

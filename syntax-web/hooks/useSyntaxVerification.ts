@@ -23,14 +23,14 @@ export type LoopEvent =
 
 export interface ScenarioChartParams {
   enabled: boolean
-  initial_capital: number
-  time_horizon_days: number
-  bull_annual_return: number
-  base_annual_return: number
-  bear_annual_return: number
-  volatility: number
-  dca_monthly_amount: number
-  suggested_sell_points: number[]
+  initial_capital?: number
+  time_horizon_days?: number
+  bull_annual_return?: number
+  base_annual_return?: number
+  bear_annual_return?: number
+  volatility?: number
+  dca_monthly_amount?: number
+  suggested_sell_points?: number[]
 }
 
 export type PendingAction = {
@@ -117,10 +117,7 @@ export function useSyntaxVerification() {
       let needsTopup = false
 
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_SYNTAX_API_URL || 'http://localhost:8080'
-        const url = `${apiUrl}/v1/verify`
-
-        const response = await fetch(url, {
+        const response = await fetch('/api/verify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

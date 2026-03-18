@@ -25,7 +25,7 @@ export async function GET() {
         { next: { revalidate: 300 } } // cache 5 min
       )
       if (res.ok) {
-        const data = await res.json()
+        const data = await res.json() as Record<string, unknown>[]
         if (Array.isArray(data)) {
           allNews.push(
             ...data.slice(0, 30).map((item: Record<string, unknown>) => ({

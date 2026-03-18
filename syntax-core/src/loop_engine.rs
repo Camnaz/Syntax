@@ -358,15 +358,24 @@ fn score_projection(p: &TrajectoryProjection) -> f64 {
 }
 
 /// Estimate LLM cost in cents based on provider and token counts.
-/// Gemini 2.5 Flash: $0.15/1M input, $0.60/1M output
-/// Anthropic Claude Sonnet: $3.00/1M input, $15.00/1M output
+/// Gemini 2.5 Flash-Lite (simple actions): $0.10/1M input, $0.40/1M output
+/// Gemini 2.5 Flash (standard): $0.30/1M input, $2.50/1M output
+/// Gemini 2.5 Pro (deep research): $1.25/1M input, $10.00/1M output
+/// Anthropic Claude Haiku 4.5: $1.00/1M input, $5.00/1M output
+/// Anthropic Claude Sonnet 4.5: $3.00/1M input, $15.00/1M output
 fn estimate_cost_cents(provider: &str, input_tokens: u32, output_tokens: u32) -> i32 {
     let cost_microdollars = match provider {
-        "gemini" => {
-            (input_tokens as f64 * 0.15 / 1_000.0) + (output_tokens as f64 * 0.60 / 1_000.0)
+        "gemini-flash-lite" => {
+            // Ultra-cheap tier for simple portfolio actions
+            (input_tokens as f64 * 0.10 / 1_000.0) + (output_tokens as f64 * 0.40 / 1_000.0)
         }
-        "anthropic" | _ => {
-            (input_tokens as f64 * 3.0 / 1_000.0) + (output_tokens as f64 * 15.0 / 1_000.0)
+        "gemini-pro" => {
+            // Premium tier for deep research
+            (input_tokens as f64 * 1.25 / 1_000.0) + (output_tokens as f64 * 10.00 / 1_000.0)
+        }
+        "gemini" | _ => {
+            // Default: Gemini 2.5 Flash standard pricing
+            (input_tokens as f64 * 0.30 / 1_000.0) + (output_tokens as f64 * 2.50 / 1_000.0)
         }
     };
     // Convert microdollars to cents, rounding up to ensure we never undercount

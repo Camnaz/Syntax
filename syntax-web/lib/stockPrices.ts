@@ -33,7 +33,7 @@ export async function fetchStockPrice(ticker: string): Promise<StockPrice | null
       return null
     }
 
-    const data = await response.json()
+    const data = await response.json() as { error?: string; ticker?: string; currentPrice?: number; change?: number; changePercent?: number; source?: string }
 
     if (data.error) {
       console.warn(`Stock price error for ${upperTicker}: ${data.error}`)
@@ -41,8 +41,8 @@ export async function fetchStockPrice(ticker: string): Promise<StockPrice | null
     }
 
     const stockPrice: StockPrice = {
-      ticker: data.ticker,
-      currentPrice: data.currentPrice,
+      ticker: data.ticker ?? upperTicker,
+      currentPrice: data.currentPrice ?? 0,
       change: data.change || 0,
       changePercent: data.changePercent || 0,
       lastUpdated: new Date(),
