@@ -113,11 +113,70 @@ Request 2 (cache hit):
 | **Institutional** | $499/mo | **$299/mo** | Unlimited | $0.0068 | - |
 
 ### Stripe Product IDs to Update
-You will need to manually update these in your Stripe Dashboard:
 
-1. **Operator** ($19/month) - Update price_xxx ID
-2. **Sovereign** ($59/month) - Update price_xxx ID  
-3. **Institutional** ($299/month) - Update price_xxx ID
+You will need to manually update these in your Stripe Dashboard, then set the environment variables in `.env.local` (dev) and in Railway/Cloudflare (production):
+
+| Tier | New Monthly Price | Environment Variable | What to Set |
+|------|-------------------|---------------------|-------------|
+| **Operator** | $19/mo | `STRIPE_PRICE_OPERATOR` | `price_xxxxx` (or `prod_xxxxx`) |
+| **Sovereign** | $59/mo | `STRIPE_PRICE_SOVEREIGN` | `price_xxxxx` (or `prod_xxxxx`) |
+| **Institutional** | $299/mo | `STRIPE_PRICE_INSTITUTIONAL` | `price_xxxxx` (or `prod_xxxxx`) |
+
+**Note:** You can use either:
+- **Price ID** (e.g., `price_1Rxxxxx...`) — recommended
+- **Product ID** (e.g., `prod_xxxxx...`) — the code will resolve to the default price
+
+### How to Update in Stripe Dashboard:
+
+1. **Create new prices** (recommended method):
+   - Log in to [Stripe Dashboard](https://dashboard.stripe.com)
+   - Go to **Products** → Select product
+   - Click **Add another price** (⚠️ do NOT archive old prices yet)
+   - Set amount: $19, $59, or $299
+   - Set billing period: Monthly
+   - Copy the new `price_xxxxx` ID
+
+2. **Update environment variables**:
+
+   **Local (`.env.local`):**
+   ```bash
+   STRIPE_PRICE_OPERATOR=price_1Rxxxxx19
+   STRIPE_PRICE_SOVEREIGN=price_1Rxxxxx59
+   STRIPE_PRICE_INSTITUTIONAL=price_1Rxxxxx299
+   ```
+
+   **Production (Railway Dashboard or `railway vars set`):**
+   ```bash
+   railway vars set STRIPE_PRICE_OPERATOR=price_1Rxxxxx19
+   railway vars set STRIPE_PRICE_SOVEREIGN=price_1Rxxxxx59
+   railway vars set STRIPE_PRICE_INSTITUTIONAL=price_1Rxxxxx299
+   ```
+
+   **Production (Cloudflare Workers Secrets for Pages):**
+   Go to Cloudflare Dashboard → Workers & Pages → syntax-web → Settings → Variables and Secrets
+
+3. **Test before archiving old prices**:
+   - Complete a test purchase with new prices
+   - Verify webhooks are working
+   - Then archive old $29/$99/$499 prices
+
+4. **Existing subscribers** (important!):
+   - Users on old prices stay on those prices until they cancel/upgrade
+   - To migrate them, you'll need to schedule price changes or notify them
+
+### Current vs New Price Mapping:
+
+```bash
+# OLD (current)
+STRIPE_PRICE_OPERATOR=prod_U8u57UeMsUV8T2      # $29
+STRIPE_PRICE_SOVEREIGN=prod_U8u6qjuy2nzRv6    # $99
+STRIPE_PRICE_INSTITUTIONAL=prod_U8u67mp7Y1bLF8 # $499
+
+# NEW (to be set)
+STRIPE_PRICE_OPERATOR=price_xxxxx            # $19
+STRIPE_PRICE_SOVEREIGN=price_xxxxx           # $59
+STRIPE_PRICE_INSTITUTIONAL=price_xxxxx       # $299
+```
 
 ---
 
