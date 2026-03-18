@@ -1393,6 +1393,7 @@ mod tests {
                 tool_calls: vec![],
                 input_tokens_estimate: 0,
                 output_tokens_estimate: 0,
+                grounding_metadata: None,
             })
         }
 

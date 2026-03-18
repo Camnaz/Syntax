@@ -194,7 +194,7 @@ BEGIN
     -- Fallback (shouldn't reach here)
     RETURN QUERY SELECT FALSE, 0, 0, 'unknown'::TEXT;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Add function to track verification cost (called by backend after each verification)
 CREATE OR REPLACE FUNCTION public.add_verification_cost(p_user_id UUID, p_cost_cents INTEGER)

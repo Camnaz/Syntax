@@ -104,8 +104,8 @@ impl GeminiProvider {
 
     pub fn new_with_model(api_key: String, model: String) -> Self {
         let client = reqwest::Client::builder()
-            .connect_timeout(Duration::from_secs(5))
-            .timeout(Duration::from_secs(25))
+            .connect_timeout(Duration::from_secs(3))  // Reduced from 5s for <6s target
+            .timeout(Duration::from_secs(10))         // Reduced from 25s for <6s target
             .build()
             .unwrap_or_default();
         Self {
@@ -131,7 +131,7 @@ impl LlmProvider for GeminiProvider {
                 }],
             },
             generation_config: GenerationConfig {
-                max_output_tokens: 8192,
+                max_output_tokens: 4096,  // Reduced from 8192 for speed
                 response_mime_type: None,
             },
             tools: vec![
@@ -240,6 +240,7 @@ mod tests {
     #[test]
     fn test_provider_name() {
         let provider = GeminiProvider::new("test-key".to_string());
-        assert_eq!(provider.name(), "gemini");
+        // Default is now flash-lite for cost optimization
+        assert_eq!(provider.name(), "gemini-flash-lite");
     }
 }

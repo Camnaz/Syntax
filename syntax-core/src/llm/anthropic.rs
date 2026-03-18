@@ -52,8 +52,8 @@ struct ContentBlock {
 impl AnthropicProvider {
     pub fn new(api_key: String) -> Self {
         let client = reqwest::Client::builder()
-            .connect_timeout(Duration::from_secs(10))
-            .timeout(Duration::from_secs(60))
+            .connect_timeout(Duration::from_secs(5))  // Reduced from 10s for <6s target
+            .timeout(Duration::from_secs(15))         // Reduced from 60s for <6s target
             .build()
             .expect("failed to build Anthropic HTTP client");
         Self {
@@ -68,7 +68,7 @@ impl LlmProvider for AnthropicProvider {
     async fn complete(&self, system: &str, user: &str) -> Result<LlmResponse, LlmError> {
         let request = AnthropicRequest {
             model: "claude-haiku-4-5-20251001".to_string(),
-            max_tokens: 8192,
+            max_tokens: 4096,  // Reduced from 8192 for speed
             system: system.to_string(),
             messages: vec![Message {
                 role: "user".to_string(),

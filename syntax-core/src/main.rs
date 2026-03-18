@@ -6,6 +6,9 @@ mod loop_engine;
 mod topic_guard;
 mod validator;
 
+#[cfg(test)]
+mod test_factory;
+
 use axum::{
     body::Bytes,
     extract::{Request, State},
