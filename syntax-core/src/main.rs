@@ -1,7 +1,9 @@
 mod auth;
 mod config;
 mod db;
+mod entitlement;
 mod llm;
+mod llm_race;
 mod loop_engine;
 mod topic_guard;
 mod validator;
@@ -257,6 +259,46 @@ async fn verify_handler(
     let live_prices = payload.live_prices.clone();
     let db = app_state.db.clone();
 
+    // ── CREDIT GATE: Check free queries / credits BEFORE any LLM work ─────
+    // This is the critical change from the spec - zero tokens if no entitlement
+    if let Some(uid) = user_id {
+        let http_client = reqwest::Client::new();
+        let tier = if crate::llm_race::is_quality_tier(&inquiry) { "quality" } else { "race" };
+
+        match crate::entitlement::consume_query(
+            &http_client,
+            &uid.to_string(),
+            1, // credits estimate
+            tier,
+            "pending",
+            0,
+            0,
+            true,
+        ).await {
+            Ok(gate) if !gate.ok => {
+                // No entitlement - return 402 before spending any LLM tokens
+                let (tx, rx) = mpsc::channel(4);
+                let _ = tx.send(crate::loop_engine::LoopEvent::UsageWarning {
+                    warning_level: "blocked".to_string(),
+                    current_cost_cents: 0,
+                    limit_cents: 0,
+                    message: "No credits remaining. Please add credits to continue.".to_string(),
+                }).await;
+                drop(tx);
+                let stream: SseStream = Box::pin(ReceiverStream::new(rx).map(|event| {
+                    let json = serde_json::to_string(&event).unwrap_or_default();
+                    Ok::<_, Infallible>(Event::default().data(json))
+                }));
+                return Ok(Sse::new(stream).keep_alive(KeepAlive::default()));
+            }
+            Err(e) => {
+                tracing::warn!("Failed to check credit entitlement: {}", e);
+                // Proceed on error (fail open) - existing cost ceiling will catch issues
+            }
+            _ => {}
+        }
+    }
+
     // Pre-check cost ceiling (skip entirely in DEV_MODE)
     let dev_mode = std::env::var("DEV_MODE").unwrap_or_default() == "true";
     if !dev_mode {
@@ -385,8 +427,14 @@ async fn main() {
 
     let cors = CorsLayer::permissive();
 
-    // Start the always-on research daemon immediately
-    spawn_research_daemon(app_state.nano_engine.clone(), app_state.db.clone());
+    // AutoResearch daemon is DISABLED by default — costs real money per cycle.
+    // Enable explicitly via ENABLE_AUTORESEARCH=true when you want it running.
+    if std::env::var("ENABLE_AUTORESEARCH").unwrap_or_default() == "true" {
+        spawn_research_daemon(app_state.nano_engine.clone(), app_state.db.clone());
+        tracing::info!("AutoResearch daemon ENABLED");
+    } else {
+        tracing::info!("AutoResearch daemon DISABLED (set ENABLE_AUTORESEARCH=true to enable)");
+    }
 
     let protected_routes = Router::new()
         .route("/v1/verify", post(verify_handler))

@@ -23,6 +23,7 @@ async-trait = "0.1"
 dotenvy = "0.15"
 postgrest = "1.6.0"
 async-stream = "0.3"
+anyhow = "1.0"
 
 [profile.release]
 opt-level = 3

@@ -87,6 +87,7 @@ export default function PricingPage() {
   const [currentTier, setCurrentTier] = useState<string>('observer')
   const [accessToken, setAccessToken] = useState<string>('')
   const [loading, setLoading] = useState<string | null>(null)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -115,6 +116,7 @@ export default function PricingPage() {
     }
 
     setLoading(tierKey)
+    setCheckoutError(null)
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -124,12 +126,15 @@ export default function PricingPage() {
         },
         body: JSON.stringify({ tier: tierKey }),
       })
-      const data = await res.json() as { url?: string }
+      const data = await res.json() as { url?: string; error?: string }
       if (data.url) {
         window.location.href = data.url
+      } else {
+        setCheckoutError(data.error ?? 'Failed to create checkout session. Please try again.')
       }
     } catch (err) {
       console.error('Checkout error:', err)
+      setCheckoutError('Network error. Please try again.')
     } finally {
       setLoading(null)
     }
@@ -206,6 +211,12 @@ export default function PricingPage() {
             )
           })}
         </div>
+
+        {checkoutError && (
+          <div className="mt-6 max-w-xl mx-auto rounded-lg bg-red-950/40 border border-red-500/40 px-4 py-3 text-sm text-red-400 text-center">
+            {checkoutError}
+          </div>
+        )}
 
         <div className="text-center mt-12 text-sm text-zinc-500">
           All plans include end-to-end encryption and SOC 2 compliance. Cancel anytime.

@@ -154,7 +154,7 @@ export function UsageMeter({ used, max, tier }: { used: number; max: number; tie
 // Stripe helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function handleStripeCheckout(tier: string, accessToken?: string) {
+async function handleStripeCheckout(tier: string, accessToken?: string): Promise<string | null> {
   try {
     const res = await fetch('/api/stripe/checkout', {
       method: 'POST',
@@ -165,10 +165,14 @@ async function handleStripeCheckout(tier: string, accessToken?: string) {
       body: JSON.stringify({ tier }),
     })
     const data = await res.json() as { url?: string; error?: string }
-    if (data.url) window.location.href = data.url
-    else console.error('Stripe checkout error:', data.error)
+    if (data.url) {
+      window.location.href = data.url
+      return null
+    }
+    return data.error ?? 'Failed to create checkout session. Please try again.'
   } catch (err) {
     console.error('Failed to initiate checkout:', err)
+    return 'Network error. Please try again.'
   }
 }
 
@@ -197,6 +201,7 @@ export function TierGate({
   devBypass = false,
 }: TierGateProps) {
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   // Dev bypass: only honoured in development builds
   if (IS_DEV_BUILD && devBypass) {
@@ -225,8 +230,10 @@ export function TierGate({
             <button
               onClick={async () => {
                 setIsCheckingOut(true)
-                await handleStripeCheckout(requiredTier, accessToken)
+                setCheckoutError(null)
+                const err = await handleStripeCheckout(requiredTier, accessToken)
                 setIsCheckingOut(false)
+                if (err) setCheckoutError(err)
               }}
               disabled={isCheckingOut}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/50 transition-colors font-semibold min-h-[48px]"
@@ -241,6 +248,9 @@ export function TierGate({
                 </>
               )}
             </button>
+            {checkoutError && (
+              <p className="text-xs text-red-400 text-center">{checkoutError}</p>
+            )}
             <Link href="/pricing" className="text-sm text-zinc-400 hover:text-white transition-colors">
               View all plans
             </Link>

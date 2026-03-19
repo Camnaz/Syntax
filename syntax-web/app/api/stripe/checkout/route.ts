@@ -2,18 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  httpClient: Stripe.createFetchHttpClient(),
+})
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
-
-const TIER_PRICE_MAP: Record<string, string> = {
-  operator: process.env.STRIPE_PRICE_OPERATOR!,
-  sovereign: process.env.STRIPE_PRICE_SOVEREIGN!,
-  institutional: process.env.STRIPE_PRICE_INSTITUTIONAL!,
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,10 +30,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const TIER_PRICE_MAP: Record<string, string> = {
+      operator: process.env.STRIPE_PRICE_OPERATOR || 'price_1TCJRnIe7Wlb5rEUvSWylDL7',
+      sovereign: process.env.STRIPE_PRICE_SOVEREIGN || 'price_1TCJ50Ie7Wlb5rEUZDBcbwWS',
+      institutional: process.env.STRIPE_PRICE_INSTITUTIONAL || 'price_1TCJ50Ie7Wlb5rEUlpMXlZqo',
+    }
+
     const { tier } = await req.json() as { tier: string }
     let priceId = TIER_PRICE_MAP[tier]
+    console.log('Checkout request:', { tier, priceId, operator: TIER_PRICE_MAP.operator ? 'set' : 'MISSING' })
     if (!priceId) {
-      return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
+      return NextResponse.json({ error: `Invalid tier: ${tier}. Price ID missing.` }, { status: 400 })
     }
 
     // If a product ID (prod_...) was provided instead of a price ID, resolve the default price
@@ -57,6 +60,15 @@ export async function POST(req: NextRequest) {
       .single()
 
     let customerId = subscription?.stripe_customer_id
+
+    // Verify customer exists in Stripe - if not (e.g., test mode customer with live key), create new
+    if (customerId) {
+      try {
+        await stripe.customers.retrieve(customerId)
+      } catch {
+        customerId = null // Customer doesn't exist in this Stripe mode, create new
+      }
+    }
 
     if (!customerId) {
       // Create Stripe customer
@@ -89,9 +101,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url })
   } catch (error) {
-    console.error('Stripe checkout error:', error)
+    const errMsg = error instanceof Error ? error.message : String(error)
+    console.error('Stripe checkout error:', errMsg)
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: `Checkout failed: ${errMsg}` },
       { status: 500 }
     )
   }
