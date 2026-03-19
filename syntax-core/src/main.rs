@@ -2,6 +2,7 @@ mod auth;
 mod config;
 mod db;
 mod entitlement;
+mod research;
 mod llm;
 mod llm_race;
 mod loop_engine;
@@ -259,11 +260,13 @@ async fn verify_handler(
     let live_prices = payload.live_prices.clone();
     let db = app_state.db.clone();
 
+    // Tier is used both for credit gate and research logging
+    let tier = if crate::llm_race::is_quality_tier(&inquiry) { "quality" } else { "race" };
+
     // ── CREDIT GATE: Check free queries / credits BEFORE any LLM work ─────
     // This is the critical change from the spec - zero tokens if no entitlement
     if let Some(uid) = user_id {
         let http_client = reqwest::Client::new();
-        let tier = if crate::llm_race::is_quality_tier(&inquiry) { "quality" } else { "race" };
 
         match crate::entitlement::consume_query(
             &http_client,
@@ -327,10 +330,36 @@ async fn verify_handler(
     let (tx, rx) = mpsc::channel(32);
     let user_id_for_task = user_id;
     let db_for_cost = app_state.db.clone();
+    let inquiry_for_log = inquiry.clone();
+    let tier_for_log = tier.to_string();
+    let verify_started_at = std::time::Instant::now();
 
     // Spawn the verification engine task
     tokio::spawn(async move {
         let outcome = engine.verify_trajectory_streaming(&inquiry, portfolio_id, chat_history, stock_memories, live_prices, tx.clone(), db).await;
+
+        // Research log — fire-and-forget, never blocks the response path
+        if let Some(uid) = user_id_for_task {
+            if let crate::loop_engine::LoopOutcome::Settled { ref projection, ref provider_used, .. } = outcome {
+                let log_uid    = uid.to_string();
+                let log_query  = inquiry_for_log.clone();
+                let log_resp   = projection.reasoning.clone();
+                let log_signal = research::detect_signal(&inquiry_for_log).to_string();
+                let log_model  = provider_used.clone();
+                let log_tier   = tier_for_log.clone();
+                let log_score  = projection.confidence_score;
+                let log_sharpe = projection.projected_sharpe;
+                let log_dd     = projection.projected_max_drawdown;
+                let log_ms     = verify_started_at.elapsed().as_millis() as i32;
+                tokio::spawn(async move {
+                    research::log_research(
+                        &log_uid, &log_query, Some(&log_resp),
+                        &log_signal, &log_model, &log_tier, 0,
+                        Some(log_score), Some(log_sharpe), Some(log_dd), Some(log_ms),
+                    ).await;
+                });
+            }
+        }
 
         // Post-verification: update cost in DB and emit usage warning if needed
         if let Some(uid) = user_id_for_task {

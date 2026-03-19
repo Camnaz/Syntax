@@ -604,3 +604,7 @@
 [2026-03-19T16:34:57Z] exp=0580 score=1.0634 sharpe=1.48 dd=3.5% conf=97% attempts=3 | Which positions are showing elevated volatility risk right now
 [2026-03-19T16:35:17Z] exp=0581 score=0.9600 sharpe=1.32 dd=3.2% conf=96% attempts=3 | Which positions are showing elevated volatility risk right now
 [2026-03-19T16:35:40Z] exp=0582 score=0.9055 sharpe=1.42 dd=3.8% conf=88% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T16:46:43Z] exp=0583 score=0.9400 sharpe=1.41 dd=3.8% conf=92% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T16:47:03Z] exp=0584 score=1.1170 sharpe=1.52 dd=3.2% conf=97% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T16:47:23Z] exp=0585 score=0.8559 sharpe=1.42 dd=4.6% conf=88% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T16:47:45Z] exp=0586 score=1.1236 sharpe=1.58 dd=3.5% conf=96% attempts=3 | What is the current optimal cash allocation given live conditions
