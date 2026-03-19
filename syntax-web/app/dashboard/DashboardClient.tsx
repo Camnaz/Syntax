@@ -7,6 +7,7 @@ import { fetchStockPrices } from '@/lib/stockPrices'
 import { useSyntaxVerification, PendingAction, TrajectoryProjection, LoopEvent, UsageWarningData } from '@/hooks/useSyntaxVerification'
 import { TierGate, DevToolsBar, type Tier } from '@/components/TierGate'
 import { PortfolioSidebar } from '@/components/portfolio/PortfolioSidebar'
+import { ResearchTab } from '@/components/ResearchTab'
 import { Shield, LogOut, Send, MessageSquare, Plus, ChevronDown, ChevronRight, Activity, Zap, CheckCircle2, XCircle, AlertCircle, Settings, Newspaper, Check, X, TrendingUp, ExternalLink, Search, CreditCard, FlaskConical } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import ReactMarkdown from 'react-markdown'
@@ -106,6 +107,7 @@ export default function DashboardClient() {
   const [isAdminMode, setIsAdminMode] = useState(false)
   // Financial Bridge modal — shown when backend returns NeedsTopup
   const [showFinancialBridge, setShowFinancialBridge] = useState(false)
+  const [activeMainView, setActiveMainView] = useState<'chat' | 'research'>('chat')
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -721,9 +723,9 @@ export default function DashboardClient() {
           </div>
           <div className="flex items-center gap-2 text-sm">
             <button
-              onClick={() => setShowResearchLog(v => !v)}
+              onClick={() => setActiveMainView(v => v === 'research' ? 'chat' : 'research')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-medium transition-colors ${
-                showResearchLog
+                activeMainView === 'research'
                   ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                   : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800'
               }`}
@@ -784,8 +786,13 @@ export default function DashboardClient() {
           </div>
         )}
 
+        {/* Research Tab View */}
+        {activeMainView === 'research' && (
+          <ResearchTab userId={user?.id} />
+        )}
+
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto pb-36 md:pb-32">
+        <div className={`flex-1 overflow-y-auto pb-36 md:pb-32 ${activeMainView === 'research' ? 'hidden' : ''}`}>
           {showHomepage ? (
             <SyntaxHomepage 
               newsItems={newsItems}

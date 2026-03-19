@@ -592,3 +592,15 @@
 [2026-03-19T16:09:57Z] exp=0568 score=0.9501 sharpe=1.42 dd=3.9% conf=93% attempts=3 | Which positions are showing elevated volatility risk right now
 [2026-03-19T16:10:20Z] exp=0569 score=1.1400 sharpe=1.62 dd=3.5% conf=95% attempts=3 | Which positions are showing elevated volatility risk right now
 [2026-03-19T16:10:42Z] exp=0570 score=1.2345 sharpe=1.68 dd=3.2% conf=97% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T16:21:44Z] exp=0571 score=0.9867 sharpe=1.48 dd=3.8% conf=92% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T16:22:05Z] exp=0572 score=0.9467 sharpe=1.42 dd=3.8% conf=92% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T16:22:25Z] exp=0573 score=1.0670 sharpe=1.55 dd=3.8% conf=95% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T16:22:46Z] exp=0574 score=1.1995 sharpe=1.62 dd=3.1% conf=97% attempts=2 | What is the current optimal cash allocation given live conditions
+[2026-03-19T16:28:07Z] exp=0575 score=1.0009 sharpe=1.48 dd=3.9% conf=94% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T16:28:30Z] exp=0576 score=0.9467 sharpe=1.42 dd=3.8% conf=92% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T16:28:54Z] exp=0577 score=0.9982 sharpe=1.45 dd=3.8% conf=95% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T16:29:14Z] exp=0578 score=1.0157 sharpe=1.46 dd=3.8% conf=96% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T16:34:35Z] exp=0579 score=0.7611 sharpe=1.28 dd=4.8% conf=88% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T16:34:57Z] exp=0580 score=1.0634 sharpe=1.48 dd=3.5% conf=97% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T16:35:17Z] exp=0581 score=0.9600 sharpe=1.32 dd=3.2% conf=96% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T16:35:40Z] exp=0582 score=0.9055 sharpe=1.42 dd=3.8% conf=88% attempts=3 | Which positions are showing elevated volatility risk right now
