@@ -60,8 +60,8 @@ function PromptTips({ constraints }: { constraints: SystemConstraint[] }) {
   if (!signals.length && !models.length) return (
     <div className="flex flex-col items-center justify-center py-16 text-zinc-600 text-sm text-center">
       <Lightbulb className="h-8 w-8 mb-3 opacity-40" />
-      <p>No constraint data yet.</p>
-      <p className="text-xs mt-1 text-zinc-700">Run <code className="bg-zinc-800 px-1 rounded">SELECT * FROM private.upgrade_system_constraints();</code> in Supabase SQL editor.</p>
+      <p className="text-zinc-500">Prompt tips will appear here as your query history grows.</p>
+      <p className="text-xs mt-2 text-zinc-700">Make a few queries and check back — SYNTAX learns from your patterns.</p>
     </div>
   )
   return (

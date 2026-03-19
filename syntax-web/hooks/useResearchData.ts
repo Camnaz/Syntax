@@ -66,12 +66,17 @@ export function useResearchData(userId: string | undefined) {
         (supabase as any).rpc('get_global_research_health'),
       ])
 
-      if (logRes.error) throw logRes.error
-      setEntries(logRes.data || [])
+      if (logRes.error) {
+        // Show actual DB error rather than generic fallback
+        setError(logRes.error.message || logRes.error.details || 'research_log query failed')
+      } else {
+        setEntries(logRes.data || [])
+      }
       if (!consRes.error) setConstraints(consRes.data || [])
       if (!healthRes.error && healthRes.data) setGlobalHealth(healthRes.data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load research data')
+    } catch (err: unknown) {
+      const msg = (err as { message?: string })?.message
+      setError(msg || String(err) || 'Failed to load research data')
     } finally {
       setLoading(false)
     }

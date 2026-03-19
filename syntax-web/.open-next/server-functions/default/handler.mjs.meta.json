@@ -3596,11 +3596,6 @@
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/dashboard/page_client-reference-manifest.js": {
-      "bytes": 7077,
-      "imports": [],
-      "format": "cjs"
-    },
     ".open-next/server-functions/default/.next/server/app/auth/page_client-reference-manifest.js": {
       "bytes": 6864,
       "imports": [],
@@ -3608,6 +3603,11 @@
     },
     ".open-next/server-functions/default/.next/server/app/_not-found/page_client-reference-manifest.js": {
       "bytes": 6090,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/dashboard/page_client-reference-manifest.js": {
+      "bytes": 7077,
       "imports": [],
       "format": "cjs"
     },
@@ -3621,23 +3621,13 @@
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/api/stock-price/route_client-reference-manifest.js": {
-      "bytes": 318,
-      "imports": [],
-      "format": "cjs"
-    },
     ".open-next/server-functions/default/.next/server/app/api/news/route_client-reference-manifest.js": {
       "bytes": 311,
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/api/stripe/webhook/route_client-reference-manifest.js": {
-      "bytes": 321,
-      "imports": [],
-      "format": "cjs"
-    },
-    ".open-next/server-functions/default/.next/server/app/api/stripe/portal/route_client-reference-manifest.js": {
-      "bytes": 320,
+    ".open-next/server-functions/default/.next/server/app/api/stock-price/route_client-reference-manifest.js": {
+      "bytes": 318,
       "imports": [],
       "format": "cjs"
     },
@@ -3646,18 +3636,28 @@
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/api/autoresearch/run/route_client-reference-manifest.js": {
-      "bytes": 323,
-      "imports": [],
-      "format": "cjs"
-    },
     ".open-next/server-functions/default/.next/server/app/api/autoresearch/stream/route_client-reference-manifest.js": {
       "bytes": 326,
       "imports": [],
       "format": "cjs"
     },
+    ".open-next/server-functions/default/.next/server/app/api/autoresearch/run/route_client-reference-manifest.js": {
+      "bytes": 323,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/api/stripe/webhook/route_client-reference-manifest.js": {
+      "bytes": 321,
+      "imports": [],
+      "format": "cjs"
+    },
     ".open-next/server-functions/default/.next/server/app/api/stripe/checkout/route_client-reference-manifest.js": {
       "bytes": 322,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/api/stripe/portal/route_client-reference-manifest.js": {
+      "bytes": 320,
       "imports": [],
       "format": "cjs"
     },
@@ -3695,11 +3695,6 @@
           "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/pricing/page_client-reference-manifest.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/dashboard/page_client-reference-manifest.js",
-          "kind": "require-call",
-          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/dashboard/page_client-reference-manifest.js"
-        },
-        {
           "path": ".open-next/server-functions/default/.next/server/app/auth/page_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/auth/page_client-reference-manifest.js"
@@ -3708,6 +3703,11 @@
           "path": ".open-next/server-functions/default/.next/server/app/_not-found/page_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/_not-found/page_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/dashboard/page_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/dashboard/page_client-reference-manifest.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/_global-error/page_client-reference-manifest.js",
@@ -3720,24 +3720,14 @@
           "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/verify/route_client-reference-manifest.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/api/stock-price/route_client-reference-manifest.js",
-          "kind": "require-call",
-          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/stock-price/route_client-reference-manifest.js"
-        },
-        {
           "path": ".open-next/server-functions/default/.next/server/app/api/news/route_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/news/route_client-reference-manifest.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/api/stripe/webhook/route_client-reference-manifest.js",
+          "path": ".open-next/server-functions/default/.next/server/app/api/stock-price/route_client-reference-manifest.js",
           "kind": "require-call",
-          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/stripe/webhook/route_client-reference-manifest.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/app/api/stripe/portal/route_client-reference-manifest.js",
-          "kind": "require-call",
-          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/stripe/portal/route_client-reference-manifest.js"
+          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/stock-price/route_client-reference-manifest.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/api/workers-ai/chat/route_client-reference-manifest.js",
@@ -3745,19 +3735,29 @@
           "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/workers-ai/chat/route_client-reference-manifest.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/api/autoresearch/run/route_client-reference-manifest.js",
-          "kind": "require-call",
-          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/autoresearch/run/route_client-reference-manifest.js"
-        },
-        {
           "path": ".open-next/server-functions/default/.next/server/app/api/autoresearch/stream/route_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/autoresearch/stream/route_client-reference-manifest.js"
         },
         {
+          "path": ".open-next/server-functions/default/.next/server/app/api/autoresearch/run/route_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/autoresearch/run/route_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/api/stripe/webhook/route_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/stripe/webhook/route_client-reference-manifest.js"
+        },
+        {
           "path": ".open-next/server-functions/default/.next/server/app/api/stripe/checkout/route_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/stripe/checkout/route_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/api/stripe/portal/route_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/cnazarko/OleaComputers/SYNTAX/v1/syntax/syntax-web/.open-next/server-functions/default/.next/server/app/api/stripe/portal/route_client-reference-manifest.js"
         }
       ],
       "format": "cjs"
@@ -5047,7 +5047,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__2662c885._.js": {
-      "bytes": 636459,
+      "bytes": 636478,
       "imports": [
         {
           "path": "node:path",
@@ -8741,14 +8741,14 @@
         ".open-next/server-functions/default/.next/server/app/pricing/page_client-reference-manifest.js": {
           "bytesInOutput": 6525
         },
-        ".open-next/server-functions/default/.next/server/app/dashboard/page_client-reference-manifest.js": {
-          "bytesInOutput": 6777
-        },
         ".open-next/server-functions/default/.next/server/app/auth/page_client-reference-manifest.js": {
           "bytesInOutput": 6559
         },
         ".open-next/server-functions/default/.next/server/app/_not-found/page_client-reference-manifest.js": {
           "bytesInOutput": 5846
+        },
+        ".open-next/server-functions/default/.next/server/app/dashboard/page_client-reference-manifest.js": {
+          "bytesInOutput": 6777
         },
         ".open-next/server-functions/default/.next/server/app/_global-error/page_client-reference-manifest.js": {
           "bytesInOutput": 5746
@@ -8756,29 +8756,29 @@
         ".open-next/server-functions/default/.next/server/app/api/verify/route_client-reference-manifest.js": {
           "bytesInOutput": 461
         },
-        ".open-next/server-functions/default/.next/server/app/api/stock-price/route_client-reference-manifest.js": {
-          "bytesInOutput": 472
-        },
         ".open-next/server-functions/default/.next/server/app/api/news/route_client-reference-manifest.js": {
           "bytesInOutput": 458
         },
-        ".open-next/server-functions/default/.next/server/app/api/stripe/webhook/route_client-reference-manifest.js": {
-          "bytesInOutput": 478
-        },
-        ".open-next/server-functions/default/.next/server/app/api/stripe/portal/route_client-reference-manifest.js": {
-          "bytesInOutput": 476
+        ".open-next/server-functions/default/.next/server/app/api/stock-price/route_client-reference-manifest.js": {
+          "bytesInOutput": 472
         },
         ".open-next/server-functions/default/.next/server/app/api/workers-ai/chat/route_client-reference-manifest.js": {
           "bytesInOutput": 480
         },
-        ".open-next/server-functions/default/.next/server/app/api/autoresearch/run/route_client-reference-manifest.js": {
-          "bytesInOutput": 482
-        },
         ".open-next/server-functions/default/.next/server/app/api/autoresearch/stream/route_client-reference-manifest.js": {
           "bytesInOutput": 488
         },
+        ".open-next/server-functions/default/.next/server/app/api/autoresearch/run/route_client-reference-manifest.js": {
+          "bytesInOutput": 482
+        },
+        ".open-next/server-functions/default/.next/server/app/api/stripe/webhook/route_client-reference-manifest.js": {
+          "bytesInOutput": 478
+        },
         ".open-next/server-functions/default/.next/server/app/api/stripe/checkout/route_client-reference-manifest.js": {
           "bytesInOutput": 480
+        },
+        ".open-next/server-functions/default/.next/server/app/api/stripe/portal/route_client-reference-manifest.js": {
+          "bytesInOutput": 476
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
           "bytesInOutput": 21244
@@ -9003,7 +9003,7 @@
           "bytesInOutput": 1568
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__2662c885._.js": {
-          "bytesInOutput": 726959
+          "bytesInOutput": 726985
         },
         ".open-next/server-functions/default/.next/server/chunks/ssr/[root-of-the-server]__6fd9c252._.js": {
           "bytesInOutput": 2198
@@ -9252,7 +9252,7 @@
           "bytesInOutput": 61104
         }
       },
-      "bytes": 4270196
+      "bytes": 4270222
     }
   }
 }
