@@ -18,7 +18,15 @@ fn is_us_market_open(now: DateTime<Utc>) -> bool {
 }
 
 fn classify_topic_locally(inquiry: &str) -> (bool, String) {
-    let lower = inquiry.to_lowercase();
+    // Strip any injected context prefixes added by the frontend before classifying,
+    // so a bare "hello" + news prefix doesn't pass as financial.
+    // Prefix patterns:  "[RECENT MARKET NEWS...]\n\n"  /  "[STOCK MEMORIES...]\n\n"
+    let raw = if let Some(pos) = inquiry.find("]\n\n") {
+        inquiry[pos + 3..].trim()
+    } else {
+        inquiry.trim()
+    };
+    let lower = raw.to_lowercase();
     const FINANCE_KEYWORDS: [&str; 54] = [
         "stock", "bond", "etf", "portfolio", "invest", "buy", "sell", "shares",
         "allocation", "market", "hedge", "risk", "return", "dividend", "yield",
@@ -34,7 +42,7 @@ fn classify_topic_locally(inquiry: &str) -> (bool, String) {
         (true, "Matched financial keyword".to_string())
     } else {
         // Also check for common ticker patterns (1-5 uppercase letters)
-        let has_ticker = inquiry.split_whitespace().any(|word| {
+        let has_ticker = raw.split_whitespace().any(|word| {
             word.len() >= 1 && word.len() <= 5 && word.chars().all(|c| c.is_ascii_uppercase())
         });
         if has_ticker {

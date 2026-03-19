@@ -263,6 +263,9 @@ async fn verify_handler(
     // Tier is used both for credit gate and research logging
     let tier = if crate::llm_race::is_quality_tier(&inquiry) { "quality" } else { "race" };
 
+    // Set to true when the user has exactly 1 free query remaining so we can warn them
+    let mut last_free_query = false;
+
     // ── CREDIT GATE: Check free queries / credits BEFORE any LLM work ─────
     // This is the critical change from the spec - zero tokens if no entitlement
     if let Some(uid) = user_id {
@@ -293,6 +296,10 @@ async fn verify_handler(
                     Ok::<_, Infallible>(Event::default().data(json))
                 }));
                 return Ok(Sse::new(stream).keep_alive(KeepAlive::default()));
+            }
+            Ok(gate) if gate.free_remaining == 1 => {
+                tracing::info!("User {} has 1 free query remaining — will emit soft warning", user_id.map(|u| u.to_string()).unwrap_or_default());
+                last_free_query = true;
             }
             Err(e) => {
                 tracing::warn!("Failed to check credit entitlement: {}", e);
@@ -333,9 +340,20 @@ async fn verify_handler(
     let inquiry_for_log = inquiry.clone();
     let tier_for_log = tier.to_string();
     let verify_started_at = std::time::Instant::now();
+    let last_free_for_task = last_free_query;
 
     // Spawn the verification engine task
     tokio::spawn(async move {
+        // Emit soft warning if this is the user's last free query
+        if last_free_for_task {
+            let _ = tx.send(crate::loop_engine::LoopEvent::UsageWarning {
+                warning_level: "soft".to_string(),
+                current_cost_cents: 0,
+                limit_cents: 0,
+                message: "This is your last free query. Upgrade to OPERATOR to keep going.".to_string(),
+            }).await;
+        }
+
         let outcome = engine.verify_trajectory_streaming(&inquiry, portfolio_id, chat_history, stock_memories, live_prices, tx.clone(), db).await;
 
         // Research log — fire-and-forget, never blocks the response path

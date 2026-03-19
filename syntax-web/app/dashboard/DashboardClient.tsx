@@ -403,8 +403,9 @@ export default function DashboardClient() {
 
       // 4c. Handle blocked usage warning — no verification ran
       if (result.usageWarning?.warning_level === 'blocked') {
-        const blockedMsg = `**Usage Limit Reached**\n\nYou've used your full usage allocation for this billing period ($${(result.usageWarning.current_cost_cents / 100).toFixed(2)} / $${(result.usageWarning.limit_cents / 100).toFixed(2)}). Please upgrade your plan to continue using SYNTAX.`
+        const blockedMsg = `**Usage Limit Reached**\n\nYou've reached your free query limit. Upgrade to **OPERATOR** to keep using SYNTAX — your portfolio and chat history will be preserved.`
         setChatHistory(prev => [...prev, { role: 'assistant', content: blockedMsg }])
+        setShowFinancialBridge(true)
         await supabase.from('chat_messages').insert({
           session_id: activeSessionId,
           role: 'assistant',
@@ -432,10 +433,17 @@ export default function DashboardClient() {
         }
       } else if (result.error) {
         assistantContent = `**Error:** ${result.error}\n\nPlease try rephrasing your question or check your portfolio settings.`
+      } else if (result.terminatedReason?.startsWith('Topic rejected:')) {
+        assistantContent = `I'm SYNTAX — your portfolio research analyst. I can help with stocks, ETFs, options, risk management, and portfolio strategy.\n\nAsk me something like: *"Should I rebalance my portfolio?"* or *"What are the risks in my current holdings?"* or *"Analyze NVDA vs AMD for long-term growth."*`
       } else if (result.terminatedReason) {
         assistantContent = `**Verification Terminated:** ${result.terminatedReason}\n\nThe AI attempted multiple times but couldn't generate a valid portfolio projection that meets your risk constraints. Try adjusting your constraints or asking a different question.`
       } else {
         assistantContent = `**Processing Issue:** The verification completed but didn't return a final result. This may be a temporary issue. Please try again.\n\nDebug info: ${JSON.stringify({ hasProjection: !!result.finalProjection, hasError: !!result.error, hasTermination: !!result.terminatedReason })}`
+      }
+
+      // 5b-pre. Prepend soft usage warning if this was the last free query
+      if (result.usageWarning?.warning_level === 'soft') {
+        assistantContent = `> ⚠️ **Last free query used.** Upgrade to [OPERATOR](/pricing) to keep your research going.\n\n` + assistantContent
       }
 
       // 5b. Parse and persist any MEMORY_SAVE tags from the response

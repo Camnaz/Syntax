@@ -7,8 +7,11 @@ pub struct Position {
     pub id: Uuid,
     pub portfolio_id: Uuid,
     pub ticker: String,
+    #[serde(default)]
     pub shares: Option<f64>,
+    #[serde(default)]
     pub dollar_amount: Option<f64>,
+    #[serde(default)]
     pub average_purchase_price: Option<f64>,
 }
 
@@ -17,12 +20,21 @@ pub struct Portfolio {
     pub id: Uuid,
     pub user_id: Uuid,
     pub name: String,
+    #[serde(default)]
     pub total_capital: f64,
+    #[serde(default)]
     pub available_cash: f64,
+    #[serde(default = "default_max_drawdown")]
     pub max_drawdown_limit: f64,
+    #[serde(default = "default_min_sharpe")]
     pub min_sharpe_ratio: f64,
+    #[serde(default = "default_max_position")]
     pub max_position_size: f64,
 }
+
+fn default_max_drawdown() -> f64 { 0.05 }
+fn default_min_sharpe() -> f64 { 1.2 }
+fn default_max_position() -> f64 { 0.25 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CostCeilingStatus {
@@ -57,8 +69,10 @@ impl SupabaseClient {
             
         let body = resp.text().await
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
-        let portfolios: Vec<Portfolio> = serde_json::from_str(&body)
-            .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+        let portfolios: Vec<Portfolio> = serde_json::from_str(&body).map_err(|e| {
+            tracing::warn!("get_portfolio serde error: {} | body_preview: {}", e, &body[..body.len().min(200)]);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
         
         Ok(portfolios.into_iter().next())
     }
@@ -74,8 +88,10 @@ impl SupabaseClient {
             
         let body = resp.text().await
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
-        let positions: Vec<Position> = serde_json::from_str(&body)
-            .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
+        let positions: Vec<Position> = serde_json::from_str(&body).map_err(|e| {
+            tracing::warn!("get_positions serde error: {} | body_preview: {}", e, &body[..body.len().min(200)]);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
         
         Ok(positions)
     }
