@@ -187,6 +187,9 @@ pub fn spawn_research_daemon(
                 }
             };
             
+            // Get inquiry for this cycle (needed for both branches)
+            let inquiry = timezone_aware_inquiries(cycle);
+            
             // Check if we can afford to process all portfolios this cycle
             let projected_cost = portfolio_ids.len() as f64 * COST_PER_EXPERIMENT_USD;
             if daily_cost_usd + projected_cost > DAILY_CAP_USD {
@@ -203,7 +206,6 @@ pub fn spawn_research_daemon(
                 let limited_ids: Vec<_> = portfolio_ids.into_iter().take(affordable_count).collect();
                 process_portfolios(&nano, &db, &limited_ids, inquiry, &mut daily_cost_usd, COST_PER_EXPERIMENT_USD).await;
             } else {
-                let inquiry = timezone_aware_inquiries(cycle);
                 tracing::info!("AutoResearch cycle={} ({} portfolios): {} | Daily spent: ${:.2}/${:.2}", 
                     cycle, portfolio_ids.len(), inquiry, daily_cost_usd, DAILY_CAP_USD);
                 process_portfolios(&nano, &db, &portfolio_ids, inquiry, &mut daily_cost_usd, COST_PER_EXPERIMENT_USD).await;
