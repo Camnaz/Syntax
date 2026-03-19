@@ -616,3 +616,59 @@
 [2026-03-19T16:59:54Z] exp=0592 score=0.9909 sharpe=1.42 dd=3.9% conf=97% attempts=3 | Which positions are showing elevated volatility risk right now
 [2026-03-19T17:00:16Z] exp=0593 score=1.0122 sharpe=1.44 dd=3.8% conf=97% attempts=3 | Which positions are showing elevated volatility risk right now
 [2026-03-19T17:00:37Z] exp=0594 score=1.0296 sharpe=1.48 dd=3.8% conf=96% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T17:11:39Z] exp=0595 score=0.9531 sharpe=1.38 dd=3.9% conf=96% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T17:11:59Z] exp=0596 score=1.1034 sharpe=1.52 dd=3.5% conf=98% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T17:12:19Z] exp=0597 score=1.0655 sharpe=1.45 dd=3.2% conf=97% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T17:12:41Z] exp=0598 score=1.1995 sharpe=1.62 dd=3.1% conf=97% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T17:18:01Z] exp=0599 score=0.9867 sharpe=1.48 dd=3.8% conf=92% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T17:18:24Z] exp=0600 score=1.1371 sharpe=1.58 dd=3.2% conf=95% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T17:18:46Z] exp=0601 score=0.8552 sharpe=1.38 dd=4.2% conf=88% attempts=2 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T17:19:08Z] exp=0602 score=1.1872 sharpe=1.62 dd=3.1% conf=96% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T17:24:32Z] exp=0603 score=0.9867 sharpe=1.48 dd=3.8% conf=92% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T17:24:54Z] exp=0604 score=0.9877 sharpe=1.45 dd=3.8% conf=94% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T17:25:15Z] exp=0605 score=0.9400 sharpe=1.41 dd=3.8% conf=92% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T17:25:36Z] exp=0606 score=0.9877 sharpe=1.45 dd=3.8% conf=94% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T17:36:38Z] exp=0607 score=0.9467 sharpe=1.42 dd=3.8% conf=92% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T17:37:00Z] exp=0608 score=0.9877 sharpe=1.45 dd=3.8% conf=94% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T17:37:22Z] exp=0609 score=0.9877 sharpe=1.45 dd=3.8% conf=94% attempts=2 | What is the current optimal cash allocation given live conditions
+[2026-03-19T17:37:42Z] exp=0610 score=1.0961 sharpe=1.51 dd=3.5% conf=98% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T17:43:04Z] exp=0611 score=1.1106 sharpe=1.58 dd=3.8% conf=97% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T17:43:24Z] exp=0612 score=1.0403 sharpe=1.48 dd=3.8% conf=97% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T17:43:46Z] exp=0613 score=0.9887 sharpe=1.42 dd=3.5% conf=94% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T17:44:07Z] exp=0614 score=0.9667 sharpe=1.45 dd=3.8% conf=92% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T17:49:30Z] exp=0615 score=0.9502 sharpe=1.41 dd=3.8% conf=93% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T17:49:52Z] exp=0616 score=1.0296 sharpe=1.48 dd=3.8% conf=96% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T17:50:13Z] exp=0617 score=1.0850 sharpe=1.51 dd=3.5% conf=97% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T17:50:34Z] exp=0618 score=1.2027 sharpe=1.62 dd=3.2% conf=98% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T18:01:35Z] exp=0619 score=0.9878 sharpe=1.42 dd=3.8% conf=96% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:01:55Z] exp=0620 score=0.8796 sharpe=1.25 dd=3.5% conf=95% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:02:16Z] exp=0621 score=1.2862 sharpe=1.68 dd=2.8% conf=98% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:02:38Z] exp=0622 score=1.1387 sharpe=1.62 dd=3.8% conf=97% attempts=2 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:08:00Z] exp=0623 score=0.9867 sharpe=1.48 dd=3.8% conf=92% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:08:21Z] exp=0624 score=1.1034 sharpe=1.52 dd=3.5% conf=98% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:08:42Z] exp=0625 score=0.8162 sharpe=1.22 dd=4.2% conf=95% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:09:02Z] exp=0626 score=0.9911 sharpe=1.41 dd=3.8% conf=97% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:14:24Z] exp=0627 score=1.0296 sharpe=1.48 dd=3.8% conf=96% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T18:14:45Z] exp=0628 score=0.9603 sharpe=1.42 dd=3.9% conf=94% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T18:15:06Z] exp=0629 score=1.0297 sharpe=1.45 dd=3.8% conf=98% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T18:15:27Z] exp=0630 score=1.1504 sharpe=1.62 dd=3.8% conf=98% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T18:26:29Z] exp=0631 score=1.0296 sharpe=1.48 dd=3.8% conf=96% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:26:49Z] exp=0632 score=1.2766 sharpe=1.72 dd=2.8% conf=95% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:27:11Z] exp=0633 score=0.9877 sharpe=1.45 dd=3.8% conf=94% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:27:32Z] exp=0634 score=1.0524 sharpe=1.48 dd=3.5% conf=96% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:32:53Z] exp=0635 score=1.0764 sharpe=1.48 dd=3.2% conf=96% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:33:14Z] exp=0636 score=0.9672 sharpe=1.42 dd=3.8% conf=94% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:33:35Z] exp=0637 score=1.2119 sharpe=1.62 dd=3.1% conf=98% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:33:56Z] exp=0638 score=1.0255 sharpe=1.41 dd=3.2% conf=96% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:39:17Z] exp=0639 score=1.0188 sharpe=1.48 dd=3.8% conf=95% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T18:39:38Z] exp=0640 score=1.0895 sharpe=1.55 dd=3.8% conf=97% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T18:39:59Z] exp=0641 score=1.0524 sharpe=1.48 dd=3.5% conf=96% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T18:40:20Z] exp=0642 score=1.0098 sharpe=1.42 dd=3.5% conf=96% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T18:51:21Z] exp=0643 score=1.0081 sharpe=1.48 dd=3.8% conf=94% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:51:41Z] exp=0644 score=1.1520 sharpe=1.62 dd=3.5% conf=96% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:52:01Z] exp=0645 score=1.2345 sharpe=1.68 dd=3.2% conf=97% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:52:22Z] exp=0646 score=1.1840 sharpe=1.65 dd=3.1% conf=94% attempts=3 | What is the current optimal cash allocation given live conditions
+[2026-03-19T18:57:44Z] exp=0647 score=0.9867 sharpe=1.48 dd=3.8% conf=92% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:58:06Z] exp=0648 score=1.0403 sharpe=1.48 dd=3.8% conf=97% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:58:58Z] exp=0649 score=0.9878 sharpe=1.42 dd=3.8% conf=96% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T18:59:18Z] exp=0650 score=0.9881 sharpe=1.45 dd=3.5% conf=92% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio

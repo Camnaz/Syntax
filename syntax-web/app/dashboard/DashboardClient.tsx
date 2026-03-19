@@ -24,12 +24,22 @@ const NEW_PORTFOLIO_PROMPTS = [
 ]
 
 const ACTIVE_PORTFOLIO_PROMPTS = [
-  "How should I position my portfolio for upcoming rate cuts based on my current holdings?",
-  "Analyze rotating 20% of my portfolio into BND for drawdown protection.",
-  "Should I rebalance my portfolio? I feel like I'm too heavily weighted in tech.",
-  "Are any of my current positions at risk due to recent news?",
-  "What is the best way to hedge my current portfolio against a market crash?",
-  "Do you see any immediate red flags with my current allocation?"
+  // High-scoring patterns (score >= 1.1): Time-bound + portfolio context + action request
+  "What is the current optimal cash allocation given live conditions?",
+  "Identify any intraday rebalancing opportunities in my portfolio",
+  "Which positions are showing elevated volatility risk right now?",
+  "Recommend position sizing adjustments based on today's close",
+  "What positions should I hold overnight vs close before tomorrow?",
+  "Summarise key risk exposures heading into after-hours",
+  "Suggest a pre-market watchlist based on my current portfolio",
+  "Prepare a morning briefing: key risks and opportunities for today",
+  "What positions should I size up or down at market open?",
+  "Identify any overnight news catalysts affecting my holdings",
+  "Perform a deep risk assessment and suggest overnight rebalancing moves",
+  "Model a max-drawdown minimization scenario for my current holdings",
+  "Optimize allocation for maximum Sharpe ratio before market open",
+  "What macro headwinds should I hedge against entering tomorrow?",
+  "Evaluate sector concentration and propose diversification targets",
 ]
 
 type ChatMsg = {

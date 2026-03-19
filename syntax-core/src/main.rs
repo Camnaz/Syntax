@@ -140,6 +140,7 @@ fn timezone_aware_inquiries(cycle: usize) -> &'static str {
 
 /// Spawn the always-on background daemon. Runs forever, queries all portfolios
 /// from the DB each cycle, and paces itself to respect model quotas.
+/// DAILY CREDIT CAP: $1.00 max (~44 experiments at current rates)
 pub fn spawn_research_daemon(
     nano: Arc<crate::loop_engine::VerificationEngine>,
     db: Arc<crate::db::SupabaseClient>,
@@ -147,7 +148,30 @@ pub fn spawn_research_daemon(
     tokio::spawn(async move {
         tracing::info!("AutoResearch daemon starting (always-on, gemini-2.0-flash)");
         let mut cycle = 0usize;
+        
+        // Daily credit tracking
+        let mut daily_cost_usd: f64 = 0.0;
+        const DAILY_CAP_USD: f64 = 1.0; // $1.00 per day max
+        const COST_PER_EXPERIMENT_USD: f64 = 0.0225; // ~3 attempts at $0.0075 each
+        let mut last_reset_date = chrono::Utc::now().date_naive();
+        
         loop {
+            // Reset daily counter at midnight UTC
+            let today = chrono::Utc::now().date_naive();
+            if today != last_reset_date {
+                tracing::info!("AutoResearch: Daily credit reset. Previous day spent: ${:.2}", daily_cost_usd);
+                daily_cost_usd = 0.0;
+                last_reset_date = today;
+            }
+            
+            // Hard stop if daily cap reached
+            if daily_cost_usd >= DAILY_CAP_USD {
+                tracing::warn!("AutoResearch: Daily credit cap of ${} reached. Pausing until tomorrow.", DAILY_CAP_USD);
+                // Sleep until next day (check every hour)
+                tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+                continue;
+            }
+
             // Refresh portfolio list every cycle
             let portfolio_ids = match db.list_portfolio_ids().await {
                 Ok(ids) if !ids.is_empty() => ids,
@@ -162,42 +186,75 @@ pub fn spawn_research_daemon(
                     continue;
                 }
             };
-
-            let inquiry = timezone_aware_inquiries(cycle);
-            tracing::info!("AutoResearch cycle={} ({} portfolios): {}", cycle, portfolio_ids.len(), inquiry);
-
-            for portfolio_id in &portfolio_ids {
-                let (tx, _rx) = tokio::sync::mpsc::channel(32);
-                let outcome = nano.verify_trajectory_streaming(
-                    inquiry, *portfolio_id, None, None, None, tx, db.clone()
-                ).await;
-
-                // Back off hard on rate-limit; keep same cycle index to retry
-                if let crate::loop_engine::LoopOutcome::Terminated { ref reason, .. } = outcome {
-                    if reason.contains("429") || reason.contains("rate") || reason.contains("quota") {
-                        tracing::warn!("AutoResearch rate-limited — backing off 90s");
-                        tokio::time::sleep(tokio::time::Duration::from_secs(90)).await;
-                        continue;
-                    }
+            
+            // Check if we can afford to process all portfolios this cycle
+            let projected_cost = portfolio_ids.len() as f64 * COST_PER_EXPERIMENT_USD;
+            if daily_cost_usd + projected_cost > DAILY_CAP_USD {
+                let remaining_budget = DAILY_CAP_USD - daily_cost_usd;
+                let affordable_count = (remaining_budget / COST_PER_EXPERIMENT_USD) as usize;
+                if affordable_count == 0 {
+                    tracing::warn!("AutoResearch: Insufficient budget for next portfolio. Daily spent: ${:.2}", daily_cost_usd);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+                    continue;
                 }
-
-                // Inter-portfolio pause to respect quota
-                tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+                tracing::info!("AutoResearch: Budget limited - processing {} of {} portfolios this cycle", 
+                    affordable_count, portfolio_ids.len());
+                // Process only affordable_count portfolios
+                let limited_ids: Vec<_> = portfolio_ids.into_iter().take(affordable_count).collect();
+                process_portfolios(&nano, &db, &limited_ids, inquiry, &mut daily_cost_usd, COST_PER_EXPERIMENT_USD).await;
+            } else {
+                let inquiry = timezone_aware_inquiries(cycle);
+                tracing::info!("AutoResearch cycle={} ({} portfolios): {} | Daily spent: ${:.2}/${:.2}", 
+                    cycle, portfolio_ids.len(), inquiry, daily_cost_usd, DAILY_CAP_USD);
+                process_portfolios(&nano, &db, &portfolio_ids, inquiry, &mut daily_cost_usd, COST_PER_EXPERIMENT_USD).await;
             }
 
             cycle = cycle.wrapping_add(1);
-            // Inter-cycle pause: shorter overnight (more analysis), longer during day
+            // Inter-cycle pause: optimized for $1/day budget
+            // 15 min during market hours, 30 min overnight
             let utc_hour = chrono::Utc::now().hour();
             let et_hour = (utc_hour + 19) % 24;
             let pause_secs = match et_hour {
-                10..=15 => 300, // market hours: every 5 min
-                6..=9 | 16..=19 => 240, // pre/post market: every 4 min
-                _ => 180, // overnight: every 3 min — more analysis while user sleeps
+                10..=15 => 900,  // market hours: every 15 min (~32 max per day)
+                6..=9 | 16..=19 => 1200, // pre/post market: every 20 min
+                _ => 1800, // overnight: every 30 min
             };
-            tracing::debug!("AutoResearch cycle complete, next in {}s", pause_secs);
+            tracing::debug!("AutoResearch cycle complete, next in {}s | Daily spent: ${:.2}/${:.2}", 
+                pause_secs, daily_cost_usd, DAILY_CAP_USD);
             tokio::time::sleep(tokio::time::Duration::from_secs(pause_secs)).await;
         }
     });
+}
+
+async fn process_portfolios(
+    nano: &Arc<crate::loop_engine::VerificationEngine>,
+    db: &Arc<crate::db::SupabaseClient>,
+    portfolio_ids: &[uuid::Uuid],
+    inquiry: &str,
+    daily_cost: &mut f64,
+    cost_per_exp: f64,
+) {
+    for portfolio_id in portfolio_ids {
+        let (tx, _rx) = tokio::sync::mpsc::channel(32);
+        let outcome = nano.verify_trajectory_streaming(
+            inquiry, *portfolio_id, None, None, None, tx, db.clone()
+        ).await;
+        
+        // Track cost regardless of outcome
+        *daily_cost += cost_per_exp;
+
+        // Back off hard on rate-limit; keep same cycle index to retry
+        if let crate::loop_engine::LoopOutcome::Terminated { ref reason, .. } = outcome {
+            if reason.contains("429") || reason.contains("rate") || reason.contains("quota") {
+                tracing::warn!("AutoResearch rate-limited — backing off 90s");
+                tokio::time::sleep(tokio::time::Duration::from_secs(90)).await;
+                continue;
+            }
+        }
+
+        // Inter-portfolio pause to respect quota (longer to save costs)
+        tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
+    }
 }
 
 async fn autoresearch_stream_handler() -> Result<Sse<SseStream>, StatusCode> {
