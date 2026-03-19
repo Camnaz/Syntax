@@ -672,3 +672,7 @@
 [2026-03-19T18:58:06Z] exp=0648 score=1.0403 sharpe=1.48 dd=3.8% conf=97% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
 [2026-03-19T18:58:58Z] exp=0649 score=0.9878 sharpe=1.42 dd=3.8% conf=96% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
 [2026-03-19T18:59:18Z] exp=0650 score=0.9881 sharpe=1.45 dd=3.5% conf=92% attempts=3 | Identify any intraday rebalancing opportunities in my portfolio
+[2026-03-19T19:04:42Z] exp=0651 score=1.1730 sharpe=1.58 dd=3.2% conf=98% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T19:05:04Z] exp=0652 score=1.1508 sharpe=1.55 dd=3.2% conf=98% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T19:05:26Z] exp=0653 score=1.0846 sharpe=1.48 dd=3.1% conf=96% attempts=3 | Which positions are showing elevated volatility risk right now
+[2026-03-19T19:05:49Z] exp=0654 score=1.1285 sharpe=1.52 dd=3.2% conf=98% attempts=3 | Which positions are showing elevated volatility risk right now

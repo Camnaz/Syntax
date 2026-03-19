@@ -1,0 +1,2 @@
+[2026-03-19T19:14:07Z] exp=0001 score=0.6689 sharpe=1.32 dd=4.8% conf=75% attempts=2 | What is the current optimal cash allocation given live conditions
+[2026-03-19T19:15:01Z] exp=0002 score=0.6227 sharpe=1.28 dd=4.8% conf=72% attempts=1 | What is the current optimal cash allocation given live conditions

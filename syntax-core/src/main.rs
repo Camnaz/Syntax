@@ -504,10 +504,11 @@ async fn main() {
         10,
     ));
 
-    // Nano engine: Gemini primary (fast + cheap), Anthropic fallback for quota resilience
+    // Nano engine: Gemini Flash-Lite primary (cheapest), Anthropic fallback for quota resilience
+    // gemini-3.1-flash-lite-preview is ~60% cheaper than 2.5-flash for high-volume AutoResearch
     let gemini_nano = Arc::new(GeminiProvider::new_with_model(
         gemini_key,
-        "gemini-2.5-flash".to_string(),
+        "gemini-3.1-flash-lite-preview".to_string(),
     ));
     let anthropic_nano = Arc::new(AnthropicProvider::new(
         std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set"),
