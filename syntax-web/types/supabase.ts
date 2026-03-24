@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -262,6 +242,93 @@ export type Database = {
           },
         ]
       }
+      query_log: {
+        Row: {
+          cost_credits: number
+          created_at: string
+          id: number
+          latency_ms: number | null
+          model_used: string
+          query_tier: string
+          rust_valid: boolean
+          tokens_used: number
+          user_id: string
+          was_free: boolean
+        }
+        Insert: {
+          cost_credits?: number
+          created_at?: string
+          id?: number
+          latency_ms?: number | null
+          model_used: string
+          query_tier: string
+          rust_valid?: boolean
+          tokens_used?: number
+          user_id: string
+          was_free?: boolean
+        }
+        Update: {
+          cost_credits?: number
+          created_at?: string
+          id?: number
+          latency_ms?: number | null
+          model_used?: string
+          query_tier?: string
+          rust_valid?: boolean
+          tokens_used?: number
+          user_id?: string
+          was_free?: boolean
+        }
+        Relationships: []
+      }
+      research_log: {
+        Row: {
+          created_at: string
+          drawdown: number | null
+          id: number
+          latency_ms: number | null
+          model_used: string
+          query_text: string
+          response_summary: string | null
+          score: number | null
+          sharpe: number | null
+          signal_type: string
+          tier: string
+          tokens_used: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          drawdown?: number | null
+          id?: number
+          latency_ms?: number | null
+          model_used?: string
+          query_text?: string
+          response_summary?: string | null
+          score?: number | null
+          sharpe?: number | null
+          signal_type?: string
+          tier?: string
+          tokens_used?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          drawdown?: number | null
+          id?: number
+          latency_ms?: number | null
+          model_used?: string
+          query_text?: string
+          response_summary?: string | null
+          score?: number | null
+          sharpe?: number | null
+          signal_type?: string
+          tier?: string
+          tokens_used?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock_memories: {
         Row: {
           created_at: string
@@ -289,6 +356,27 @@ export type Database = {
           ticker?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      system_constraints: {
+        Row: {
+          constraint_key: string
+          constraint_val: Json
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          constraint_key: string
+          constraint_val?: Json
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          constraint_key?: string
+          constraint_val?: Json
+          id?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -348,8 +436,17 @@ export type Database = {
       user_subscriptions: {
         Row: {
           billing_cycle_start: string | null
+          cost_limit_cents: number
           created_at: string | null
+          credit_balance: number
+          credits_updated_at: string | null
+          free_queries_used: number
           id: string
+          last_cost_reset: string | null
+          last_verification_reset: string | null
+          last_weekly_reset: string | null
+          last_yearly_reset: string | null
+          monthly_cost_cents: number
           monthly_verifications_limit: number
           monthly_verifications_used: number
           stripe_customer_id: string | null
@@ -357,11 +454,25 @@ export type Database = {
           tier: string
           updated_at: string | null
           user_id: string
+          verification_count: number
+          weekly_verifications_limit: number
+          weekly_verifications_used: number
+          yearly_verifications_limit: number
+          yearly_verifications_used: number
         }
         Insert: {
           billing_cycle_start?: string | null
+          cost_limit_cents?: number
           created_at?: string | null
+          credit_balance?: number
+          credits_updated_at?: string | null
+          free_queries_used?: number
           id?: string
+          last_cost_reset?: string | null
+          last_verification_reset?: string | null
+          last_weekly_reset?: string | null
+          last_yearly_reset?: string | null
+          monthly_cost_cents?: number
           monthly_verifications_limit?: number
           monthly_verifications_used?: number
           stripe_customer_id?: string | null
@@ -369,11 +480,25 @@ export type Database = {
           tier?: string
           updated_at?: string | null
           user_id: string
+          verification_count?: number
+          weekly_verifications_limit?: number
+          weekly_verifications_used?: number
+          yearly_verifications_limit?: number
+          yearly_verifications_used?: number
         }
         Update: {
           billing_cycle_start?: string | null
+          cost_limit_cents?: number
           created_at?: string | null
+          credit_balance?: number
+          credits_updated_at?: string | null
+          free_queries_used?: number
           id?: string
+          last_cost_reset?: string | null
+          last_verification_reset?: string | null
+          last_weekly_reset?: string | null
+          last_yearly_reset?: string | null
+          monthly_cost_cents?: number
           monthly_verifications_limit?: number
           monthly_verifications_used?: number
           stripe_customer_id?: string | null
@@ -381,6 +506,11 @@ export type Database = {
           tier?: string
           updated_at?: string | null
           user_id?: string
+          verification_count?: number
+          weekly_verifications_limit?: number
+          weekly_verifications_used?: number
+          yearly_verifications_limit?: number
+          yearly_verifications_used?: number
         }
         Relationships: []
       }
@@ -389,7 +519,46 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_verification_cost: {
+        Args: { p_cost_cents: number; p_user_id: string }
+        Returns: undefined
+      }
+      check_cost_ceiling: {
+        Args: { p_user_id: string }
+        Returns: {
+          allowed: boolean
+          current_cost_cents: number
+          limit_cents: number
+          warning_level: string
+        }[]
+      }
+      get_global_research_health: { Args: never; Returns: Json }
+      increment_verification_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          allowed: boolean
+          current_count: number
+          max_count: number
+          period: string
+        }[]
+      }
+      log_research: {
+        Args: {
+          p_drawdown?: number
+          p_latency_ms?: number
+          p_model?: string
+          p_query_text: string
+          p_response?: string
+          p_score?: number
+          p_sharpe?: number
+          p_signal_type?: string
+          p_tier?: string
+          p_tokens?: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      upgrade_system_constraints: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -518,11 +687,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-

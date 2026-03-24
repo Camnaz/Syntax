@@ -88,8 +88,8 @@ struct GeminiFunctionCall {
 
 impl GeminiProvider {
     pub fn new(api_key: String) -> Self {
-        // Use stable 2.0 Flash-Lite — 2.5 hits demand limits
-        Self::new_with_model(api_key, "gemini-2.0-flash-lite".to_string())
+        // Use gemini-2.5-flash-lite as a stable fallback for the 2026 cost optimization plan
+        Self::new_with_model(api_key, "gemini-2.5-flash-lite".to_string())
     }
 
     pub fn new_flash_standard(api_key: String) -> Self {
@@ -143,7 +143,7 @@ impl LlmProvider for GeminiProvider {
         };
 
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1alpha/models/{}:generateContent?key={}",
+            "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
             self.model, self.api_key
         );
 
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn test_provider_name() {
         let provider = GeminiProvider::new("test-key".to_string());
-        // Stable 2.0 Flash-Lite — 2.5 has demand issues
-        assert_eq!(provider.name(), "gemini-2.0-flash-lite");
+        // gemini-3.1-flash-lite-preview - 2.0-flash-lite is deprecated
+        assert_eq!(provider.name(), "gemini-3.1-flash-lite-preview");
     }
 }

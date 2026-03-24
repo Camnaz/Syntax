@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, X, Edit2, Save, Trash2, PieChart, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
+import { Plus, X, Edit2, Save, Trash2, PieChart, AlertTriangle } from 'lucide-react'
 import { fetchStockPrices, StockPrice } from '@/lib/stockPrices'
 
 type Position = {
@@ -32,7 +32,6 @@ export function PortfolioSidebar({ portfolioId, isOpen, onCloseAction }: Portfol
   const [config, setConfig] = useState<PortfolioConfig | null>(null)
   const [livePrices, setLivePrices] = useState<Map<string, StockPrice>>(new Map())
   const [isLoadingPrices, setIsLoadingPrices] = useState(false)
-  const [priceError, setPriceError] = useState<string | null>(null)
   
   const [isEditingConfig, setIsEditingConfig] = useState(false)
   const [editConfig, setEditConfig] = useState<PortfolioConfig | null>(null)
@@ -108,7 +107,7 @@ export function PortfolioSidebar({ portfolioId, isOpen, onCloseAction }: Portfol
       clearInterval(interval)
       window.removeEventListener('portfolio-updated', handlePortfolioUpdate)
     }
-  }, [portfolioId, isOpen, supabase])
+  }, [portfolioId, isOpen, supabase, positions])
 
   const saveConfig = async () => {
     if (!editConfig || !portfolioId) return
@@ -224,141 +223,152 @@ export function PortfolioSidebar({ portfolioId, isOpen, onCloseAction }: Portfol
         onClick={onCloseAction}
       />
       {/* Panel: bottom-sheet on mobile, right-side on sm+ */}
-      <div className="fixed z-50 bg-zinc-900 border-zinc-800 shadow-2xl flex flex-col
+      <div className="fixed z-50 bg-white border-l border-zinc-200 shadow-2xl flex flex-col
         bottom-0 left-0 right-0 rounded-t-2xl border-t max-h-[92vh]
-        sm:inset-y-0 sm:right-0 sm:left-auto sm:top-0 sm:bottom-0 sm:w-96 sm:rounded-none sm:border-t-0 sm:border-l sm:max-h-none">
+        sm:inset-y-0 sm:right-0 sm:left-auto sm:top-0 sm:bottom-0 sm:w-96 sm:rounded-none sm:border-t-0 sm:border-l sm:max-h-none selection:bg-olea-evergreen/10">
         {/* Mobile drag handle */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-zinc-700" />
+          <div className="h-1 w-10 rounded-full bg-zinc-200" />
         </div>
-        <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
-          <div className="flex items-center gap-2 font-semibold">
-            <PieChart className="h-5 w-5 text-emerald-500" />
+        <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-2 font-black text-olea-obsidian uppercase tracking-widest text-sm">
+            <PieChart className="h-4 w-4 text-olea-evergreen" />
             Portfolio Context
           </div>
-          <button onClick={onCloseAction} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-zinc-800 rounded-md text-zinc-400">
+          <button onClick={onCloseAction} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-zinc-50 rounded-xl text-zinc-400 transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 space-y-8 bg-olea-studio-grey/30">
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Risk Parameters</h3>
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Risk Parameters</h3>
             <button 
               onClick={() => isEditingConfig ? saveConfig() : setIsEditingConfig(true)}
-              className="text-xs text-emerald-500 hover:text-emerald-400 flex items-center gap-1"
+              className="text-[10px] font-black uppercase tracking-widest text-olea-evergreen hover:text-olea-obsidian transition-colors flex items-center gap-1 bg-olea-evergreen/5 px-2 py-1 rounded-md border border-olea-evergreen/10"
             >
               {isEditingConfig ? <><Save className="h-3 w-3" /> Save</> : <><Edit2 className="h-3 w-3" /> Edit</>}
             </button>
           </div>
           
           {config && editConfig && (
-            <div className="space-y-3 bg-zinc-950 p-3 rounded-lg border border-zinc-800/50">
+            <div className="space-y-3 bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Cost Basis</span>
-                <span className="font-mono text-zinc-400">
+                <span className="text-zinc-500 font-medium">Cost Basis</span>
+                <span className="font-mono text-olea-obsidian font-bold">
                   ${portfolioMetrics.costBasis.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Current Value</span>
-                <span className="font-mono text-emerald-500 font-semibold">
+                <span className="text-zinc-500 font-medium">Current Value</span>
+                <span className="font-mono text-olea-evergreen font-black">
                   {isLoadingPrices && livePrices.size === 0 ? (
-                    <span className="text-zinc-500">Loading...</span>
+                    <span className="text-zinc-400">Loading...</span>
                   ) : (
                     `$${portfolioMetrics.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   )}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Total P&L</span>
-                <span className={`font-mono font-semibold ${
-                  portfolioMetrics.pnl >= 0 ? 'text-emerald-500' : 'text-red-500'
+                <span className="text-zinc-500 font-medium">Total P&L</span>
+                <span className={`font-mono font-black ${
+                  portfolioMetrics.pnl >= 0 ? 'text-olea-evergreen' : 'text-red-600'
                 }`}>
                   {isLoadingPrices && livePrices.size === 0 ? (
-                    <span className="text-zinc-500">--</span>
+                    <span className="text-zinc-400">--</span>
                   ) : (
                     `${portfolioMetrics.pnl >= 0 ? '+' : ''}$${Math.abs(portfolioMetrics.pnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${portfolioMetrics.pnl >= 0 ? '+' : ''}${portfolioMetrics.pnlPercent.toFixed(2)}%)`
                   )}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Available Cash</span>
-                {isEditingConfig ? (
-                  <input type="number" step="1" value={editConfig.available_cash} onChange={e => setEditConfig({...editConfig, available_cash: parseFloat(e.target.value)})} className="w-24 bg-zinc-800 rounded px-2 py-1 text-right outline-none" />
-                ) : (
-                  <span className="font-mono text-emerald-400">${config.available_cash.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Max Drawdown</span>
-                {isEditingConfig ? (
-                  <input type="number" step="0.01" value={editConfig.max_drawdown_limit} onChange={e => setEditConfig({...editConfig, max_drawdown_limit: parseFloat(e.target.value)})} className="w-24 bg-zinc-800 rounded px-2 py-1 text-right outline-none" />
-                ) : (
-                  <span className="font-mono">{(config.max_drawdown_limit * 100).toFixed(1)}%</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Max Position</span>
-                {isEditingConfig ? (
-                  <input type="number" step="0.01" value={editConfig.max_position_size} onChange={e => setEditConfig({...editConfig, max_position_size: parseFloat(e.target.value)})} className="w-24 bg-zinc-800 rounded px-2 py-1 text-right outline-none" />
-                ) : (
-                  <span className="font-mono">{(config.max_position_size * 100).toFixed(1)}%</span>
-                )}
+              <div className="pt-2 mt-2 border-t border-zinc-50 space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-500 font-medium">Available Cash</span>
+                  {isEditingConfig ? (
+                    <input type="number" step="1" value={editConfig.available_cash} onChange={e => setEditConfig({...editConfig, available_cash: parseFloat(e.target.value)})} className="w-24 bg-zinc-50 border border-zinc-200 rounded-lg px-2 py-1 text-right outline-none font-bold text-olea-evergreen focus:border-olea-evergreen/40 transition-all" />
+                  ) : (
+                    <span className="font-mono text-olea-evergreen font-bold">${config.available_cash.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-500 font-medium">Max Drawdown</span>
+                  {isEditingConfig ? (
+                    <input type="number" step="0.01" value={editConfig.max_drawdown_limit} onChange={e => setEditConfig({...editConfig, max_drawdown_limit: parseFloat(e.target.value)})} className="w-24 bg-zinc-50 border border-zinc-200 rounded-lg px-2 py-1 text-right outline-none font-bold focus:border-olea-evergreen/40 transition-all" />
+                  ) : (
+                    <span className="font-mono font-bold text-olea-obsidian">{(config.max_drawdown_limit * 100).toFixed(1)}%</span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-500 font-medium">Max Position</span>
+                  {isEditingConfig ? (
+                    <input type="number" step="0.01" value={editConfig.max_position_size} onChange={e => setEditConfig({...editConfig, max_position_size: parseFloat(e.target.value)})} className="w-24 bg-zinc-50 border border-zinc-200 rounded-lg px-2 py-1 text-right outline-none font-bold focus:border-olea-evergreen/40 transition-all" />
+                  ) : (
+                    <span className="font-mono font-bold text-olea-obsidian">{(config.max_position_size * 100).toFixed(1)}%</span>
+                  )}
+                </div>
               </div>
             </div>
           )}
         </section>
 
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Holdings</h3>
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Holdings</h3>
             <button 
               onClick={() => setIsAddingPosition(!isAddingPosition)}
-              className="text-xs text-emerald-500 hover:text-emerald-400 flex items-center gap-1"
+              className="text-[10px] font-black uppercase tracking-widest text-olea-evergreen hover:text-olea-obsidian transition-colors flex items-center gap-1 bg-olea-evergreen/5 px-2 py-1 rounded-md border border-olea-evergreen/10"
             >
-              {isAddingPosition ? 'Cancel' : <><Plus className="h-3 w-3" /> Add</>}
+              {isAddingPosition ? 'Cancel' : <><Plus className="h-3 w-3" /> Add Asset</>}
             </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {isAddingPosition && (
-              <div className="bg-zinc-950 p-3 rounded-lg border border-emerald-500/30 space-y-2 mb-4">
-                <input 
-                  placeholder="Ticker (e.g. AAPL)" 
-                  value={newPosition.ticker}
-                  onChange={e => setNewPosition({...newPosition, ticker: e.target.value})}
-                  className="w-full bg-zinc-900 rounded px-3 py-1.5 text-sm outline-none uppercase" 
-                />
-                <div className="flex gap-2">
+              <div className="bg-white p-4 rounded-2xl border border-olea-evergreen/20 shadow-lg space-y-3 mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Ticker Symbol</label>
                   <input 
-                    placeholder="Shares" 
-                    type="number"
-                    value={newPosition.shares}
-                    onChange={e => setNewPosition({...newPosition, shares: e.target.value})}
-                    className="w-1/2 bg-zinc-900 rounded px-3 py-1.5 text-sm outline-none" 
+                    placeholder="E.G. NVDA" 
+                    value={newPosition.ticker}
+                    onChange={e => setNewPosition({...newPosition, ticker: e.target.value})}
+                    className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-2.5 text-sm outline-none uppercase font-bold text-olea-obsidian focus:border-olea-evergreen/40 transition-all" 
                   />
-                  <input 
-                    placeholder="Avg Price" 
-                    type="number"
-                    value={newPosition.price}
-                    onChange={e => setNewPosition({...newPosition, price: e.target.value})}
-                    className="w-1/2 bg-zinc-900 rounded px-3 py-1.5 text-sm outline-none" 
-                  />
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Shares</label>
+                    <input 
+                      placeholder="0.00" 
+                      type="number"
+                      value={newPosition.shares}
+                      onChange={e => setNewPosition({...newPosition, shares: e.target.value})}
+                      className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-2.5 text-sm outline-none font-bold text-olea-obsidian focus:border-olea-evergreen/40 transition-all" 
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Avg Price</label>
+                    <input 
+                      placeholder="0.00" 
+                      type="number"
+                      value={newPosition.price}
+                      onChange={e => setNewPosition({...newPosition, price: e.target.value})}
+                      className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-2.5 text-sm outline-none font-bold text-olea-obsidian focus:border-olea-evergreen/40 transition-all" 
+                    />
+                  </div>
                 </div>
                 <button 
                   onClick={addPosition}
-                  className="w-full bg-emerald-500 text-zinc-950 py-1.5 rounded-md text-sm font-medium hover:bg-emerald-400 transition-colors"
+                  className="w-full bg-olea-evergreen text-white py-3 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-olea-obsidian transition-all shadow-md active:scale-[0.98]"
                 >
-                  Save Holding
+                  Confirm Asset
                 </button>
               </div>
             )}
 
             {positions.length === 0 && !isAddingPosition ? (
-              <div className="text-sm text-zinc-500 italic text-center py-4 bg-zinc-950 rounded-lg">
-                No holdings yet. Add some to give the AI context.
+              <div className="text-sm text-zinc-400 font-medium italic text-center py-10 bg-white/50 rounded-2xl border border-dashed border-zinc-200">
+                No active holdings.<br/>Add assets to begin verification.
               </div>
             ) : (
               positions.map(pos => {
@@ -371,22 +381,22 @@ export function PortfolioSidebar({ portfolioId, isOpen, onCloseAction }: Portfol
                 const isEditingThis = editingCostBasis === pos.id
 
                 return (
-                  <div key={pos.id} className={`bg-zinc-950 p-3 rounded-lg border group ${
-                    hasCostBasis ? 'border-zinc-800/50' : 'border-amber-500/30'
+                  <div key={pos.id} className={`bg-white p-4 rounded-2xl border transition-all hover:shadow-md group ${
+                    hasCostBasis ? 'border-zinc-200 shadow-sm' : 'border-amber-200 shadow-sm shadow-amber-500/5'
                   }`}>
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start justify-between mb-3">
                       <div>
-                        <div className="font-mono font-semibold text-base">{pos.ticker}</div>
-                        <div className="text-xs text-zinc-500">
+                        <div className="font-black text-lg tracking-tight text-olea-obsidian leading-none mb-1">{pos.ticker}</div>
+                        <div className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest">
                           {pos.shares} shares
                           {hasCostBasis && (
-                            <span className="text-zinc-400"> @ ${pos.average_purchase_price!.toFixed(2)} avg</span>
+                            <span className="text-zinc-300"> @ ${pos.average_purchase_price!.toFixed(2)}</span>
                           )}
                         </div>
                       </div>
                       <button 
                         onClick={() => deletePosition(pos.id)}
-                        className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-zinc-300 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -395,55 +405,55 @@ export function PortfolioSidebar({ portfolioId, isOpen, onCloseAction }: Portfol
                     {!hasCostBasis && !isEditingThis && (
                       <button
                         onClick={() => { setEditingCostBasis(pos.id); setCostBasisInput('') }}
-                        className="w-full flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1.5 hover:bg-amber-500/20 transition-colors mt-1"
+                        className="w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-100 rounded-xl py-2 hover:bg-amber-100 transition-all mt-1"
                       >
-                        <AlertTriangle className="h-3 w-3 flex-shrink-0" />
-                        Cost basis missing — Add acquisition price
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                        Missing Cost Basis
                       </button>
                     )}
 
                     {!hasCostBasis && isEditingThis && (
-                      <div className="flex gap-1.5 mt-1">
+                      <div className="flex gap-2 mt-1">
                         <input
                           type="number"
                           step="0.01"
                           min="0.01"
-                          placeholder="Avg price paid (e.g. 248.50)"
+                          placeholder="Price..."
                           value={costBasisInput}
                           onChange={e => setCostBasisInput(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') saveCostBasis(pos.id); if (e.key === 'Escape') setEditingCostBasis(null) }}
                           autoFocus
-                          className="flex-1 bg-zinc-800 border border-amber-500/40 rounded px-2 py-1 text-xs outline-none focus:border-amber-400 font-mono"
+                          className="flex-1 bg-zinc-50 border border-amber-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-400 font-mono font-bold text-olea-obsidian"
                         />
                         <button
                           onClick={() => saveCostBasis(pos.id)}
-                          className="bg-amber-500 text-zinc-950 rounded px-2 py-1 text-xs font-semibold hover:bg-amber-400"
+                          className="bg-amber-500 text-white rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest hover:bg-amber-600 transition-colors shadow-sm"
                         >
                           Save
                         </button>
                         <button
                           onClick={() => setEditingCostBasis(null)}
-                          className="text-zinc-500 hover:text-zinc-300 px-1"
+                          className="text-zinc-400 hover:text-olea-obsidian transition-colors px-1"
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-4 w-4" />
                         </button>
                       </div>
                     )}
 
                     {livePrice && (
-                      <div className="space-y-1 text-xs border-t border-zinc-800/50 pt-2 mt-2">
-                        <div className="flex justify-between">
-                          <span className="text-zinc-500">Live Price:</span>
-                          <span className="font-mono text-zinc-300">${livePrice.currentPrice.toFixed(2)}</span>
+                      <div className="space-y-2 text-xs border-t border-zinc-50 pt-3 mt-3">
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-zinc-400 font-bold uppercase tracking-widest text-[9px]">Live Price</span>
+                          <span className="font-mono text-olea-obsidian font-bold">${livePrice.currentPrice.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-zinc-500">Current Value:</span>
-                          <span className="font-mono text-emerald-400">${currentValue!.toFixed(2)}</span>
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-zinc-400 font-bold uppercase tracking-widest text-[9px]">Value</span>
+                          <span className="font-mono text-olea-evergreen font-black">${currentValue!.toFixed(2)}</span>
                         </div>
                         {hasCostBasis && pnl != null && pnlPercent != null && (
-                          <div className="flex justify-between">
-                            <span className="text-zinc-500">P&L:</span>
-                            <span className={`font-mono font-semibold ${pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-zinc-400 font-bold uppercase tracking-widest text-[9px]">P&L</span>
+                            <span className={`font-mono font-black ${pnl >= 0 ? 'text-olea-evergreen' : 'text-red-600'}`}>
                               {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
                             </span>
                           </div>
@@ -452,8 +462,8 @@ export function PortfolioSidebar({ portfolioId, isOpen, onCloseAction }: Portfol
                     )}
                     
                     {!livePrice && !isLoadingPrices && (
-                      <div className="text-xs text-zinc-600 italic mt-2 pt-2 border-t border-zinc-800/50">
-                        Price data unavailable
+                      <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-3 pt-3 border-t border-zinc-50 italic text-center">
+                        Price feed offline
                       </div>
                     )}
                   </div>
@@ -463,8 +473,8 @@ export function PortfolioSidebar({ portfolioId, isOpen, onCloseAction }: Portfol
           </div>
         </section>
         
-        <div className="text-xs text-zinc-500 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10">
-          The AI will automatically consider these parameters and holdings when giving advice.
+        <div className="text-[10px] font-bold text-olea-evergreen/60 bg-olea-evergreen/3 p-4 rounded-2xl border border-olea-evergreen/10 leading-relaxed text-center italic">
+          Olea Syntax autonomous agent continuously monitors these parameters during verification loops.
         </div>
       </div>
       </div>

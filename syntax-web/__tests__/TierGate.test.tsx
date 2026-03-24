@@ -10,8 +10,8 @@
  * 6. Tier hierarchy is strictly ordered
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import React from 'react'
 import {
   TierGate,
@@ -35,7 +35,6 @@ function renderTierGate(
       requiredTier={requiredTier}
       currentTier={currentTier}
       remainingFreeUses={remainingFreeUses}
-      maxFreeUses={3}
       devBypass={devBypass}
     >
       <div data-testid="protected-content">Protected</div>
@@ -132,7 +131,7 @@ describe('UsageMeter', () => {
   })
 
   it('shows warning colour when 1 use left', () => {
-    const { container } = render(<UsageMeter used={2} max={3} tier="observer" />)
+    render(<UsageMeter used={2} max={3} tier="observer" />)
     expect(screen.getByText('1 left')).toHaveClass('text-amber-400')
   })
 })

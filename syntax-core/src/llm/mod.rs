@@ -46,6 +46,7 @@ pub mod tools;
 
 pub use anthropic::AnthropicProvider;
 pub use gemini::GeminiProvider;
+#[allow(unused_imports)]
 pub use mock::MockProvider;
 pub use router::LlmRouter;
 pub mod gemini_metadata;

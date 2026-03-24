@@ -8,11 +8,14 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --background: #060806;
-  --foreground: #ededed;
+  --background: #F2F2F7;
+  --foreground: #1A1A1E;
   /* Olea design tokens */
-  --olea-forest: #00D26A;
-  --olea-titanium: #A0A0A0;
+  --olea-evergreen: #2D3A30;
+  --olea-paper: #F5F5F7;
+  --olea-obsidian: #1A1A1E;
+  --olea-studio-grey: #F2F2F7;
+  --olea-titanium: #666666;
   --olea-silver: #E5E5E5;
   --olea-risk: #B85450;
   --olea-risk-muted: #9E4340;
@@ -21,35 +24,38 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plusJakartaSans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-
-  /* Override emerald → Forest Green (Olea palette) */
-  --color-emerald-50: #E6FAF0;
-  --color-emerald-100: #CCF5E1;
-  --color-emerald-200: #99EBC3;
-  --color-emerald-300: #66E1A4;
-  --color-emerald-400: #33D787;
-  --color-emerald-500: #00D26A;
-  --color-emerald-600: #00A855;
-  --color-emerald-700: #007E40;
-  --color-emerald-800: #00542A;
-  --color-emerald-900: #002A15;
-  --color-emerald-950: #00150A;
+  --font-price: var(--font-space-grotesk);
 
   /* Olea custom colors */
-  --color-olea-forest: #00D26A;
-  --color-olea-titanium: #A0A0A0;
+  --color-olea-evergreen: #2D3A30;
+  --color-olea-paper: #F5F5F7;
+  --color-olea-obsidian: #1A1A1E;
+  --color-olea-studio-grey: #F2F2F7;
+  --color-olea-titanium: #666666;
   --color-olea-silver: #E5E5E5;
   --color-olea-risk: #B85450;
   --color-olea-risk-muted: #9E4340;
-  --color-olea-black: #050505;
+
+  /* Overrides for common tailwind colors to match palette */
+  --color-emerald-50: #f4f5f4;
+  --color-emerald-100: #e9ebe9;
+  --color-emerald-200: #d2d7d2;
+  --color-emerald-300: #bbc4bb;
+  --color-emerald-400: #a4b0a4;
+  --color-emerald-500: #2D3A30; /* Evergreen */
+  --color-emerald-600: #253028;
+  --color-emerald-700: #1e2620;
+  --color-emerald-800: #161c18;
+  --color-emerald-900: #0f1310;
+  --color-emerald-950: #070908;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-plusJakartaSans), "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
   line-height: 1.7; /* 1.2x increase for data serenity */
   letter-spacing: -0.01em;
   /* Prevent iOS bounce scroll on body */
@@ -58,18 +64,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Ambient Light gradient — slow titanium-to-silver blend */
+/* Ambient Light gradient — Studio Grey version */
 .ambient-bg {
-  background: linear-gradient(
-    135deg,
-    #060806 0%,
-    #0a120a 25%,
-    #080a08 50%,
-    #0a0c0a 75%,
-    #060806 100%
-  );
-  background-size: 400% 400%;
-  animation: ambientShift 30s ease-in-out infinite;
+  background: #F2F2F7;
 }
 
 @keyframes ambientShift {
@@ -77,33 +74,33 @@ body {
   50% { background-position: 100% 50%; }
 }
 
-/* ── Glassmorphism ─────────────────────────────────────────────────────────── */
+/* ── Glassmorphism (Light Mode) ─────────────────────────────────────────────── */
 .glass {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .glass-strong {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .glass-panel {
-  background: rgba(10, 12, 10, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
-              inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .glass-inner {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04),
-              inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 
 /* ── Micro-Glow (hover effect) ─────────────────────────────────────────────── */

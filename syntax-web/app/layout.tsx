@@ -1,9 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-plusJakartaSans",
+export const dynamic = 'force-dynamic'
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
   display: "swap",
 });
@@ -14,12 +22,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SYNTAX — Autonomous Portfolio Intelligence",
+  title: "Olea Syntax — Autonomous Portfolio Intelligence",
   description: "AI-powered portfolio verification and autonomous overnight research.",
+  icons: {
+    icon: "/images/AgentFaviconSyntax.svg",
+    shortcut: "/images/AgentFaviconSyntax.svg",
+    apple: "/images/AgentFaviconSyntax.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "SYNTAX",
+    title: "Olea Syntax",
   },
 };
 
@@ -38,10 +51,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${plusJakartaSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${spaceGrotesk.variable} ${geistMono.variable} antialiased`}
       >
         {children}
       </body>
     </html>
-  );
+  )
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Crown, ArrowRight, Zap, CreditCard } from 'lucide-react'
 import Link from 'next/link'
+import { FinancialBridge } from './FinancialBridge'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HARD PRODUCTION GATE
@@ -28,12 +29,6 @@ export const TIER_NAMES: Record<string, string> = {
   operator: 'Operator',
   sovereign: 'Sovereign',
   institutional: 'Institutional',
-}
-
-const TIER_PRICES: Record<string, string> = {
-  operator: '$29/mo',
-  sovereign: '$99/mo',
-  institutional: '$499/mo',
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,7 +57,7 @@ export function DevToolsBar({
   const tiers: Tier[] = ['observer', 'operator', 'sovereign', 'institutional']
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 bg-zinc-900 border border-amber-500/40 rounded-xl p-4 shadow-2xl shadow-black/60 text-xs font-mono w-48">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 bg-olea-obsidian border border-amber-500/40 rounded-xl p-4 shadow-2xl shadow-black/60 text-xs font-mono w-48">
       <div className="flex items-center justify-center gap-2 mb-1 border-b border-zinc-800 pb-3">
         <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
         <span className="text-amber-400 font-bold tracking-wider">DEV MODE</span>
@@ -91,7 +86,7 @@ export function DevToolsBar({
               const val = e.target.value as Tier
               onTierOverride(val === realTier ? null : val)
             }}
-            className="bg-zinc-950 text-zinc-200 border border-zinc-700 rounded-lg px-2 py-2 flex-1 outline-none focus:border-amber-500/50 cursor-pointer"
+            className="bg-zinc-950 text-olea-paper border border-zinc-700 rounded-lg px-2 py-2 flex-1 outline-none focus:border-amber-500/50 cursor-pointer"
             title="Simulate a different subscription tier"
           >
             {tiers.map((t) => (
@@ -129,51 +124,25 @@ export function UsageMeter({ used, max, tier }: { used: number; max: number; tie
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-zinc-400 font-mono">
+        <span className="text-zinc-500 font-mono">
           <Zap className="h-3 w-3 inline mr-1" />
           {used}/{max} verifications
         </span>
-        <span className={`font-semibold ${isExhausted ? 'text-red-400' : isLow ? 'text-amber-400' : 'text-emerald-400'}`}>
+        <span className={`font-semibold ${isExhausted ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-olea-evergreen'}`}>
           {remaining} left
         </span>
       </div>
-      <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${isExhausted ? 'bg-red-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'}`}
+          className={`h-full rounded-full transition-all duration-500 ${isExhausted ? 'bg-red-500' : isLow ? 'bg-amber-500' : 'bg-olea-evergreen'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
       {isExhausted && tier === 'observer' && (
-        <p className="text-xs text-red-400 mt-1">Free tier limit reached. Upgrade to continue.</p>
+        <p className="text-xs text-red-600 mt-1 font-medium">Free tier limit reached. Upgrade to continue.</p>
       )}
     </div>
   )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Stripe helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function handleStripeCheckout(tier: string, accessToken?: string): Promise<string | null> {
-  try {
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
-      body: JSON.stringify({ tier }),
-    })
-    const data = await res.json() as { url?: string; error?: string }
-    if (data.url) {
-      window.location.href = data.url
-      return null
-    }
-    return data.error ?? 'Failed to create checkout session. Please try again.'
-  } catch (err) {
-    console.error('Failed to initiate checkout:', err)
-    return 'Network error. Please try again.'
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -185,10 +154,9 @@ interface TierGateProps {
   requiredTier: 'operator' | 'sovereign' | 'institutional'
   currentTier: Tier
   remainingFreeUses?: number
-  maxFreeUses?: number
-  accessToken?: string
   /** Set by DevToolsBar — bypasses tier/usage gates in dev builds only */
   devBypass?: boolean
+  accessToken?: string
 }
 
 export function TierGate({
@@ -196,12 +164,10 @@ export function TierGate({
   requiredTier,
   currentTier,
   remainingFreeUses = 0,
-  maxFreeUses = 3,
-  accessToken,
   devBypass = false,
+  accessToken = '',
 }: TierGateProps) {
-  const [isCheckingOut, setIsCheckingOut] = useState(false)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [showFinancialBridge, setShowFinancialBridge] = useState(false)
 
   // Dev bypass: only honoured in development builds
   if (IS_DEV_BUILD && devBypass) {
@@ -217,47 +183,49 @@ export function TierGate({
 
   // Blocked — show upgrade wall
   return (
-    <div className="relative">
-      <div className="absolute inset-0 backdrop-blur-sm bg-zinc-900/80 rounded-xl z-10 flex items-center justify-center">
-        <div className="text-center max-w-md p-6 sm:p-8">
-          <Crown className="h-12 w-12 text-emerald-400 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold mb-2">{TIER_NAMES[requiredTier]} Required</h3>
-          <p className="text-zinc-400 mb-4">
-            Upgrade to {TIER_NAMES[requiredTier]} tier to access this feature
+    <div className="relative rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+      {showFinancialBridge && (
+        <FinancialBridge 
+          onClose={() => setShowFinancialBridge(false)}
+          accessToken={accessToken}
+          currentTier={currentTier}
+        />
+      )}
+      <div className="absolute inset-0 bg-white/95 backdrop-blur-md z-10 flex items-center justify-center p-6 border border-zinc-100 rounded-xl selection:bg-olea-evergreen/10">
+        <div className="text-center max-w-sm w-full animate-in fade-in zoom-in duration-300">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-olea-evergreen/10 mb-5 border border-olea-evergreen/20 shadow-sm transition-transform hover:scale-110">
+            <Crown className="h-8 w-8 text-olea-evergreen" />
+          </div>
+          <h3 className="text-xl font-black text-olea-obsidian mb-1 tracking-tight text-center uppercase">{TIER_NAMES[requiredTier]} Required</h3>
+          <p className="text-olea-evergreen text-lg font-black mb-2 text-center tracking-tighter">$5<span className="text-xs font-medium text-olea-evergreen/60">/week</span></p>
+          <p className="text-olea-obsidian/70 text-sm mb-7 leading-relaxed text-center font-medium">
+            You&apos;ve reached the free query limit. Upgrade to keep using Olea Syntax&apos;s autonomous intelligence.
           </p>
-          <UsageMeter used={maxFreeUses - remainingFreeUses} max={maxFreeUses} tier={currentTier} />
-          <div className="flex flex-col gap-3 mt-6">
+          
+          <div className="space-y-3">
             <button
-              onClick={async () => {
-                setIsCheckingOut(true)
-                setCheckoutError(null)
-                const err = await handleStripeCheckout(requiredTier, accessToken)
-                setIsCheckingOut(false)
-                if (err) setCheckoutError(err)
-              }}
-              disabled={isCheckingOut}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/50 transition-colors font-semibold min-h-[48px]"
+              onClick={() => setShowFinancialBridge(true)}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-olea-evergreen hover:bg-olea-obsidian transition-all font-bold text-olea-paper shadow-lg shadow-olea-evergreen/10 active:scale-[0.98] group"
             >
-              {isCheckingOut ? (
-                <span className="animate-pulse">Redirecting to Stripe…</span>
-              ) : (
-                <>
-                  <CreditCard className="h-4 w-4" />
-                  Upgrade to {TIER_NAMES[requiredTier]} ({TIER_PRICES[requiredTier]})
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
+              <CreditCard className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              <span>Upgrade to {TIER_NAMES[requiredTier]}</span>
+              <ArrowRight className="h-4 w-4 opacity-60 group-hover:translate-x-1 transition-transform" />
             </button>
-            {checkoutError && (
-              <p className="text-xs text-red-400 text-center">{checkoutError}</p>
-            )}
-            <Link href="/pricing" className="text-sm text-zinc-400 hover:text-white transition-colors">
-              View all plans
+            
+            <Link 
+              href="/pricing" 
+              className="block text-sm font-bold text-olea-obsidian/40 hover:text-olea-evergreen transition-colors py-1 uppercase tracking-widest"
+            >
+              Compare all plans
             </Link>
           </div>
         </div>
       </div>
-      <div className="opacity-30 pointer-events-none">{children}</div>
+      
+      {/* Background Content (Visible but disabled) */}
+      <div className="opacity-10 pointer-events-none select-none filter blur-[1px]">
+        {children}
+      </div>
     </div>
   )
 }

@@ -12,28 +12,28 @@ interface TrajectoryPanelProps {
 export function TrajectoryPanel({ projection }: TrajectoryPanelProps) {
   if (!projection) {
     return (
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8">
-        <div className="text-center text-zinc-500">
-          <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No projection yet. Run a verification to see results.</p>
+      <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm">
+        <div className="text-center text-zinc-400">
+          <Target className="h-12 w-12 mx-auto mb-4 opacity-30" />
+          <p className="font-medium">No projection yet. Run a verification to see results.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-full max-h-[800px]">
-      <div className="border-b border-zinc-800 px-6 py-4 shrink-0">
-        <h3 className="text-xl font-bold flex items-center gap-2">
-          <Target className="h-5 w-5 text-emerald-400" />
+    <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden flex flex-col h-full max-h-[800px] shadow-sm">
+      <div className="border-b border-zinc-200 px-6 py-5 shrink-0 bg-white">
+        <h3 className="text-xl font-black flex items-center gap-2 text-olea-obsidian uppercase tracking-tight">
+          <Target className="h-5 w-5 text-olea-evergreen" strokeWidth={2.5} />
           Verified Trajectory
         </h3>
-        <p className="text-sm text-zinc-400 mt-1">
+        <p className="text-[10px] font-black text-zinc-400 mt-1 uppercase tracking-widest">
           {new Date(projection.timestamp).toLocaleString()}
         </p>
       </div>
 
-      <div className="p-6 space-y-6 overflow-y-auto">
+      <div className="p-6 space-y-8 overflow-y-auto selection:bg-olea-evergreen/10">
         {/* Metrics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
           <MetricCard
@@ -64,22 +64,22 @@ export function TrajectoryPanel({ projection }: TrajectoryPanelProps) {
 
         {/* Allocation Table */}
         <div className="shrink-0">
-          <h4 className="font-semibold mb-3">Proposed Allocation</h4>
+          <h4 className="text-sm font-bold text-olea-obsidian uppercase tracking-wider mb-4">Proposed Allocation</h4>
           <div className="space-y-2">
             {projection.proposed_allocation.map((position, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg"
+                className="flex items-center justify-between p-3.5 bg-olea-studio-grey/50 border border-zinc-100 rounded-xl hover:bg-white hover:border-zinc-200 transition-all group"
               >
-                <span className="font-mono font-semibold">{position.ticker}</span>
+                <span className="font-mono font-bold text-olea-obsidian">{position.ticker}</span>
                 <div className="flex items-center gap-4">
-                  <div className="w-32 h-2 bg-zinc-700 rounded-full overflow-hidden">
+                  <div className="w-32 h-2 bg-zinc-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-emerald-500"
+                      className="h-full bg-olea-evergreen"
                       style={{ width: `${position.weight * 100}%` }}
                     />
                   </div>
-                  <span className="font-mono text-sm w-16 text-right">
+                  <span className="font-mono text-sm w-16 text-right font-bold text-olea-obsidian">
                     {(position.weight * 100).toFixed(1)}%
                   </span>
                 </div>
@@ -90,8 +90,8 @@ export function TrajectoryPanel({ projection }: TrajectoryPanelProps) {
 
         {/* Reasoning */}
         <div>
-          <h4 className="font-semibold mb-3">Analysis & Action Plan</h4>
-          <div className="prose prose-invert prose-emerald max-w-none text-sm leading-relaxed bg-zinc-800/30 p-6 rounded-lg">
+          <h4 className="text-sm font-black text-olea-obsidian uppercase tracking-widest mb-4">Analysis & Action Plan</h4>
+          <div className="prose prose-zinc max-w-none text-[15px] leading-loose bg-white border border-zinc-200 p-6 rounded-2xl text-olea-obsidian shadow-sm">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {projection.reasoning}
             </ReactMarkdown>
@@ -114,19 +114,19 @@ function MetricCard({
   color: 'emerald' | 'red' | 'blue' | 'purple'
 }) {
   const colorClasses = {
-    emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-    red: 'text-red-400 bg-red-500/10 border-red-500/20',
-    blue: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-    purple: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+    emerald: 'text-olea-evergreen bg-emerald-50 border-olea-evergreen/20',
+    red: 'text-red-700 bg-red-50 border-red-200',
+    blue: 'text-blue-700 bg-blue-50 border-blue-200',
+    purple: 'text-purple-700 bg-purple-50 border-purple-200',
   }
 
   return (
-    <div className={`border rounded-lg p-4 ${colorClasses[color]}`}>
+    <div className={`border rounded-xl p-4 shadow-sm ${colorClasses[color]}`}>
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <span className="text-xs font-medium opacity-80">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">{label}</span>
       </div>
-      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-2xl font-bold tracking-tight">{value}</div>
     </div>
   )
 }

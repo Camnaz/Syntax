@@ -55,8 +55,8 @@ pub struct PortfolioConstraints {
 impl Default for PortfolioConstraints {
     fn default() -> Self {
         Self {
-            max_drawdown_pct: 0.25,      // 25% max drawdown
-            min_sharpe_ratio: 0.5,        // Minimum Sharpe ratio
+            max_drawdown_pct: 0.035,      // 3.5% max drawdown
+            min_sharpe_ratio: 1.6,        // Minimum Sharpe ratio 1.6
             max_position_size_pct: 0.40,  // 40% max single position
             min_confidence_score: 0.70,   // 70% minimum confidence
         }

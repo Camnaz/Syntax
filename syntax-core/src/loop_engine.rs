@@ -1,4 +1,5 @@
 use crate::llm::LlmRouter;
+use crate::llm::router::ActionComplexity;
 use crate::validator::{validate_trajectory, PortfolioConstraints, TrajectoryProjection};
 use chrono::{DateTime, Utc, Datelike, Timelike, Weekday, TimeZone};
 
@@ -127,6 +128,12 @@ const MAX_ATTEMPTS: usize = 3;
 const ATTEMPT_TIMEOUT_SECS: u64 = 65;
 /// After this many timeouts in one loop, bail early on best result and write incident.
 const FAST_MODE_THRESHOLD: usize = 2;
+
+// DGM-H Phase 1: Cost constants per tier (USD)
+// These drive the PerformanceTracker imp@k metric and daily budget enforcement.
+pub const COST_SIMPLE_USD: f64 = 0.0004;   // gemini-2.5-flash-lite (simple portfolio action)
+pub const COST_STANDARD_USD: f64 = 0.0068; // gemini-2.5-flash with prompt caching
+pub const COST_DEEP_USD: f64 = 0.043;      // gemini-2.5-pro (institutional deep research)
 pub const RESEARCH_LOG_PATH: &str = "research_log.txt";
 pub const PERF_INCIDENT_PATH: &str = "SYNTAX_PERF_INCIDENT.md";
 
@@ -214,6 +221,18 @@ async fn append_research_log(inquiry: &str, best_score: f64, best_attempt: usize
 /// Returns true for queries like "add $500 of BGS", "buy 10 shares of AAPL", "remove TSLA", etc.
 fn is_simple_portfolio_action(inquiry: &str) -> bool {
     let lower = inquiry.to_lowercase();
+
+    // Bulk allocation confirmation phrases — user applying a previously verified allocation
+    let bulk_patterns = [
+        "add those", "add them", "add all", "apply these", "apply those", "apply them",
+        "apply all", "add to my portfolio", "add to portfolio", "add the positions",
+        "add these positions", "add those positions", "apply allocation", "apply this",
+        "execute those", "execute this", "do it", "confirm these", "confirm those",
+    ];
+    if bulk_patterns.iter().any(|p| lower.contains(p)) {
+        return true;
+    }
+
     // Action keywords + ticker pattern (1-5 uppercase letters)
     let action_keywords = ["add", "buy", "sell", "remove", "update", "delete", "bought", "sold"];
     let has_action = action_keywords.iter().any(|kw| lower.contains(kw));
@@ -230,6 +249,30 @@ fn is_simple_portfolio_action(inquiry: &str) -> bool {
     
     // It's a simple action if: (has action keyword AND (has dollar OR has share words OR has ticker))
     has_action && (has_dollar || has_share_words || has_ticker)
+}
+
+/// DGM-H Phase 1: Classify inquiry complexity for tiered model routing.
+/// Returns the cheapest tier that can handle the query correctly.
+fn classify_inquiry_complexity(inquiry: &str) -> ActionComplexity {
+    let lower = inquiry.to_lowercase();
+
+    // Simple: bulk allocation apply, single-position mutations, cash updates
+    if is_simple_portfolio_action(inquiry) {
+        return ActionComplexity::Simple;
+    }
+
+    // Deep: multi-stock comparison, full portfolio construction from scratch, institutional analysis
+    let deep_patterns = [
+        "compare", "versus", "vs ", "build me", "construct", "from scratch",
+        "deep research", "institutional", "comprehensive analysis", "full analysis",
+        "5 stocks", "10 stocks", "multiple", "portfolio of",
+    ];
+    if deep_patterns.iter().any(|p| lower.contains(p)) {
+        return ActionComplexity::Deep;
+    }
+
+    // Standard: everything else (single-ticker analysis, risk checks, rebalancing)
+    ActionComplexity::Standard
 }
 
 /// Fast-path handler for simple portfolio actions — bypasses verification loop entirely.
@@ -292,8 +335,8 @@ JUST confirm the action and ask for missing info (avg price) if needed."#;
         }
     }
     
-    // Single LLM call with tool
-    let response = llm_router.complete(system_prompt, &user_prompt).await
+    // Single LLM call via Simple tier (gemini-2.5-flash-lite at $0.0004/action)
+    let response = llm_router.complete_tiered(system_prompt, &user_prompt, ActionComplexity::Simple).await
         .map_err(|e| format!("LLM call failed: {}", e))?;
     
     // Extract pending actions from tool calls
@@ -561,7 +604,9 @@ impl VerificationEngine {
 
         // Step 2: Classify inquiry intent for research-directed prompting
         let intent = classify_inquiry_intent(inquiry);
-        tracing::info!("Classified inquiry intent: {:?}", intent);
+        // DGM-H: also classify complexity for tiered model routing
+        let complexity = classify_inquiry_complexity(inquiry);
+        tracing::info!("Classified inquiry intent={:?} complexity={:?}", intent, complexity);
 
         // Step 2b: Load recent successful verification patterns for self-improvement
         let recent_learnings = read_recent_log_entries(3).await;
@@ -603,7 +648,7 @@ impl VerificationEngine {
             let attempt_start = std::time::Instant::now();
             let llm_result = timeout(
                 Duration::from_secs(ATTEMPT_TIMEOUT_SECS),
-                self.llm_router.complete(&system_prompt, &user_prompt),
+                self.llm_router.complete_tiered(&system_prompt, &user_prompt, complexity),
             ).await;
 
             let attempt_ms = attempt_start.elapsed().as_millis();
@@ -1052,6 +1097,7 @@ CAPABILITIES:
 - SCENARIO ENGINE: For "what to buy with $X" — ask timeline + DCA intent, show real dollar amounts and share counts, populate `scenario_chart` JSON, compare alternatives.
 - NEWS IMPACT: Analyze per-position impact with severity and specific price estimates.
 - CORRECTIONS: Fact-check user corrections before accepting. Emit <!--MEMORY_SAVE ticker="X" fact="Y" source="verified"--> for verified facts. Use [STOCK MEMORIES] context when provided.
+- RESEARCH STORAGE: When your analysis surfaces a significant, reusable insight (macro thesis, sector trend, valuation framework, or key data point), embed <!--RESEARCH_SAVE topic="SHORT_TOPIC" note="concise insight under 200 chars"--> once per response at most. Do NOT emit for trivial or obvious facts. Only emit when the insight would genuinely improve future analyses.
 - DEEP RESEARCH: For urgent queries, cite current price, 52-week range, analyst targets, broad market context. Recommend specific order types if broker mentioned.
 
 HARD CONSTRAINTS (violations = rejection):
@@ -1198,8 +1244,17 @@ RULES:
         // Progressive refinement: include previous response so the LLM can improve on it
         if let Some(prev) = previous_response {
             prompt.push_str("YOUR PREVIOUS RESPONSE (rejected — improve on this, don't start from scratch):\n");
-            // Truncate to avoid token explosion
-            let truncated = if prev.len() > 2000 { &prev[..2000] } else { prev };
+            // Truncate to avoid token explosion - use char boundary to handle multi-byte UTF-8
+            let truncated = if prev.len() > 2000 {
+                // Find the last character boundary before 2000 bytes
+                let mut end = 2000;
+                while !prev.is_char_boundary(end) && end > 0 {
+                    end -= 1;
+                }
+                &prev[..end]
+            } else {
+                prev
+            };
             prompt.push_str(truncated);
             prompt.push_str("\n\n");
         }

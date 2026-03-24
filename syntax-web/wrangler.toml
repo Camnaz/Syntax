@@ -16,18 +16,29 @@ zone_name = "oleacomputer.com"
 
 [vars]
 # Non-secret env vars — secrets are set in Cloudflare Workers dashboard
+NEXT_PUBLIC_SUPABASE_URL = "https://zlxskwovmkidsezdxpzv.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpseHNrd292bWtpZHNlemR4cHp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDg2NzIsImV4cCI6MjA4ODkyNDY3Mn0.VYx6VTlNlY3FfDG2-4fzEpRWXnxwWUzo_dx4axdVEs0"
+NEXT_PUBLIC_SYNTAX_API_URL = "https://syntax-api-production.up.railway.app"
+NEXT_PUBLIC_SITE_URL = "https://syntax.oleacomputer.com"
 NEXT_PUBLIC_OBSERVER_FREE_VERIFICATIONS = "3"
-# NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SYNTAX_API_URL,
-# NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_FINNHUB_API_KEY, STRIPE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY
-# — set these as encrypted secrets in the Cloudflare Workers dashboard
+NEXT_PUBLIC_FINNHUB_API_KEY = "d6pofc9r01qk0cf1b8t0d6pofc9r01qk0cf1b8tg"
+# STRIPE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY — set these as encrypted secrets in the Cloudflare Workers dashboard
 
 # Stripe price IDs (not secret, safe to include)
 STRIPE_PRICE_OPERATOR = "price_1TCJRnIe7Wlb5rEUvSWylDL7"
 STRIPE_PRICE_SOVEREIGN = "price_1TCJ50Ie7Wlb5rEUZDBcbwWS"
 STRIPE_PRICE_INSTITUTIONAL = "price_1TCJ50Ie7Wlb5rEUlpMXlZqo"
 
+[env.production.ai]
+binding = "AI"
+
 [env.production.vars]
+NEXT_PUBLIC_SUPABASE_URL = "https://zlxskwovmkidsezdxpzv.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpseHNrd292bWtpZHNlemR4cHp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDg2NzIsImV4cCI6MjA4ODkyNDY3Mn0.VYx6VTlNlY3FfDG2-4fzEpRWXnxwWUzo_dx4axdVEs0"
+NEXT_PUBLIC_SYNTAX_API_URL = "https://syntax-api-production.up.railway.app"
+NEXT_PUBLIC_SITE_URL = "https://syntax.oleacomputer.com"
 NEXT_PUBLIC_OBSERVER_FREE_VERIFICATIONS = "3"
+NEXT_PUBLIC_FINNHUB_API_KEY = "d6pofc9r01qk0cf1b8t0d6pofc9r01qk0cf1b8tg"
 STRIPE_PRICE_OPERATOR = "price_1TCJRnIe7Wlb5rEUvSWylDL7"
 STRIPE_PRICE_SOVEREIGN = "price_1TCJ50Ie7Wlb5rEUZDBcbwWS"
 STRIPE_PRICE_INSTITUTIONAL = "price_1TCJ50Ie7Wlb5rEUlpMXlZqo"

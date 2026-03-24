@@ -10,23 +10,23 @@ interface AuditTerminalProps {
 
 export function AuditTerminal({ events, isStreaming }: AuditTerminalProps) {
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-      <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+    <div className="bg-olea-obsidian border border-zinc-800 rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/5">
+      <div className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between bg-zinc-900/50">
         <div className="flex items-center gap-2">
-          <Activity className="h-4 w-4 text-emerald-400" />
-          <span className="font-semibold">Audit Terminal</span>
+          <Activity className="h-4 w-4 text-olea-evergreen" />
+          <span className="font-black text-white text-[11px] uppercase tracking-[0.2em]">Audit Terminal v1.0</span>
         </div>
         {isStreaming && (
-          <div className="flex items-center gap-2 text-emerald-400 text-sm">
-            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            Streaming
+          <div className="flex items-center gap-2 text-olea-evergreen text-[10px] font-black tracking-widest bg-olea-evergreen/10 px-2 py-1 rounded-md border border-olea-evergreen/20">
+            <div className="h-1.5 w-1.5 rounded-full bg-olea-evergreen animate-pulse" />
+            LIVE_LOG
           </div>
         )}
       </div>
 
-      <div className="p-4 space-y-2 max-h-96 overflow-y-auto font-mono text-sm">
+      <div className="p-4 space-y-2.5 max-h-96 overflow-y-auto font-mono text-[11px] selection:bg-olea-evergreen/30 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
         {events.length === 0 && !isStreaming && (
-          <div className="text-zinc-500 text-center py-8">
+          <div className="text-zinc-400 text-center py-8 italic">
             No events yet. Submit an inquiry to start verification.
           </div>
         )}
@@ -51,45 +51,45 @@ function EventLine({ event }: { event: LoopEvent }) {
     switch (event.event) {
       case 'TopicCheck':
         return event.data.is_financial ? (
-          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+          <CheckCircle2 className="h-3.5 w-3.5 text-olea-evergreen" />
         ) : (
-          <XCircle className="h-4 w-4 text-red-400" />
+          <XCircle className="h-3.5 w-3.5 text-red-500" />
         )
       case 'Attempt':
-        return <Zap className="h-4 w-4 text-blue-400" />
+        return <Zap className="h-3.5 w-3.5 text-blue-500" />
       case 'Verified':
-        return <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+        return <CheckCircle2 className="h-3.5 w-3.5 text-olea-evergreen" />
       case 'Rejected':
-        return <XCircle className="h-4 w-4 text-yellow-400" />
+        return <XCircle className="h-3.5 w-3.5 text-amber-500" />
       case 'Terminated':
-        return <AlertCircle className="h-4 w-4 text-red-400" />
+        return <AlertCircle className="h-3.5 w-3.5 text-red-500" />
       case 'Settled':
-        return <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+        return <CheckCircle2 className="h-3.5 w-3.5 text-olea-evergreen" />
       case 'Error':
-        return <XCircle className="h-4 w-4 text-red-400" />
+        return <XCircle className="h-3.5 w-3.5 text-red-500" />
       default:
-        return <Eye className="h-4 w-4 text-zinc-400" />
+        return <Eye className="h-3.5 w-3.5 text-zinc-400" />
     }
   }
 
   const getColor = () => {
     switch (event.event) {
       case 'TopicCheck':
-        return event.data.is_financial ? 'text-emerald-400' : 'text-red-400'
+        return event.data.is_financial ? 'text-olea-evergreen' : 'text-red-400'
       case 'Attempt':
         return 'text-blue-400'
       case 'Verified':
-        return 'text-emerald-400'
+        return 'text-olea-evergreen font-bold'
       case 'Rejected':
-        return 'text-yellow-400'
+        return 'text-amber-400'
       case 'Terminated':
-        return 'text-red-400'
+        return 'text-red-400 font-bold'
       case 'Settled':
-        return 'text-emerald-400'
+        return 'text-olea-evergreen font-bold'
       case 'Error':
         return 'text-red-400'
       default:
-        return 'text-zinc-400'
+        return 'text-zinc-500'
     }
   }
 

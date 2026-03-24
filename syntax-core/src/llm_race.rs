@@ -3,7 +3,7 @@ use std::env;
 use tokio::select;
 
 const HAIKU:      &str = "claude-haiku-4-5-20251001";
-const FLASH_LITE: &str = "gemini-2.0-flash-lite";
+const FLASH_LITE: &str = "gemini-3.1-flash-lite-preview";
 const OPUS:       &str = "claude-opus-4-6";
 
 const SYSTEM_PROMPT: &str = "You are a financial analysis assistant. Be concise. Output actionable analysis only.";

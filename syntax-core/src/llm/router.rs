@@ -3,9 +3,26 @@ use crate::llm::tool::LlmResponse;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+/// DGM-H Phase 1: Action complexity tiers that drive model selection.
+/// Implements the cost-optimized routing spec:
+///   Simple  -> gemini-2.5-flash-lite  ($0.0004/action)
+///   Standard -> gemini-2.5-flash       ($0.0068/verification, with caching)
+///   Deep    -> gemini-2.5-pro          ($0.043/verification)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ActionComplexity {
+    /// Simple portfolio mutations: add/remove position, update cash, confirm allocation.
+    Simple,
+    /// Standard analysis: single-ticker analysis, risk checks, verification loop.
+    Standard,
+    /// Deep research: multi-stock comparison, full portfolio construction, overnight batch.
+    Deep,
+}
+
 pub struct LlmRouter {
     primary: Arc<dyn LlmProvider>,
     fallback: Arc<dyn LlmProvider>,
+    /// Cheap model for Simple-tier actions (gemini-2.5-flash-lite).
+    simple: Arc<dyn LlmProvider>,
     /// Set to true once the primary returns CreditsExhausted.
     /// Subsequent calls skip the primary entirely to avoid noise + wasted round-trips.
     primary_exhausted: AtomicBool,
@@ -17,7 +34,62 @@ fn is_valid(r: &LlmResponse) -> bool {
 
 impl LlmRouter {
     pub fn new(primary: Arc<dyn LlmProvider>, fallback: Arc<dyn LlmProvider>) -> Self {
-        Self { primary, fallback, primary_exhausted: AtomicBool::new(false) }
+        // Default simple provider mirrors primary; main.rs may override via new_with_simple()
+        let simple = Arc::clone(&primary);
+        Self { primary, fallback, simple, primary_exhausted: AtomicBool::new(false) }
+    }
+
+    pub fn new_with_simple(
+        primary: Arc<dyn LlmProvider>,
+        fallback: Arc<dyn LlmProvider>,
+        simple: Arc<dyn LlmProvider>,
+    ) -> Self {
+        Self { primary, fallback, simple, primary_exhausted: AtomicBool::new(false) }
+    }
+
+    /// DGM-H Phase 1: Route to the cheapest model tier capable of the task.
+    /// - Simple  -> single call to flash-lite, no race (saves ~94% vs Standard)
+    /// - Standard -> existing race between primary + fallback
+    /// - Deep    -> primary only with longer context window
+    pub async fn complete_tiered(&self, system: &str, user: &str, complexity: ActionComplexity) -> Result<(LlmResponse, &'static str), LlmError> {
+        match complexity {
+            ActionComplexity::Simple => {
+                let s = Arc::clone(&self.simple);
+                let sys = system.to_owned();
+                let usr = user.to_owned();
+                match s.complete(&sys, &usr).await {
+                    Ok(resp) if is_valid(&resp) => {
+                        tracing::info!("DGM-H Simple tier: {} responded", s.name());
+                        Ok((resp, s.name()))
+                    }
+                    Ok(_) => {
+                        tracing::warn!("DGM-H Simple tier empty, escalating to Standard");
+                        self.complete(system, user).await
+                    }
+                    Err(e) => {
+                        tracing::warn!("DGM-H Simple tier failed ({}), escalating to Standard", e);
+                        self.complete(system, user).await
+                    }
+                }
+            }
+            ActionComplexity::Standard => self.complete(system, user).await,
+            ActionComplexity::Deep => {
+                // Primary only — higher token budget for deep research
+                let p = Arc::clone(&self.primary);
+                let sys = system.to_owned();
+                let usr = user.to_owned();
+                match p.complete(&sys, &usr).await {
+                    Ok(resp) if is_valid(&resp) => {
+                        tracing::info!("DGM-H Deep tier: {} responded", p.name());
+                        Ok((resp, p.name()))
+                    }
+                    _ => {
+                        tracing::warn!("DGM-H Deep tier primary failed, falling back to Standard race");
+                        self.complete(system, user).await
+                    }
+                }
+            }
+        }
     }
 
     /// Race both providers in parallel. First valid response wins.

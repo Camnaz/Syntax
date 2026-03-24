@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -32,6 +33,30 @@ function extractUserIdFromJwt(authHeader: string): string | null {
   }
 }
 
+async function checkObserverLimit(userId: string): Promise<{ allowed: boolean; message?: string }> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+  
+  if (!supabaseUrl || !supabaseKey) {
+    return { allowed: true }
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey)
+  const { data: sub } = await supabase
+    .from('user_subscriptions')
+    .select('tier, verification_count')
+    .eq('user_id', userId)
+    .single()
+
+  if (sub && sub.tier === 'observer') {
+    const maxUses = Number(process.env.NEXT_PUBLIC_OBSERVER_FREE_VERIFICATIONS || '3')
+    if ((sub.verification_count || 0) >= maxUses) {
+      return { allowed: false, message: "Usage Limit Reached: You've reached your free query limit. Upgrade to OPERATOR to keep using Olea Syntax." }
+    }
+  }
+  return { allowed: true }
+}
+
 /**
  * Server-side proxy for the syntax-core /v1/verify SSE stream.
  * Rate limited: 10 req/min per user.
@@ -42,10 +67,21 @@ export async function POST(req: NextRequest) {
 
   // Rate limit check
   const userId = extractUserIdFromJwt(authHeader)
-  if (userId) {
+  const devMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true'
+
+  if (userId && !devMode) {
     const { allowed } = checkRateLimit(userId)
     if (!allowed) {
       const sseError = `data: ${JSON.stringify({ event: 'Error', data: { message: 'Rate limit exceeded. Max 10 requests per minute.' } })}\n\n`
+      return new Response(sseError, {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' },
+      })
+    }
+
+    const observerCheck = await checkObserverLimit(userId)
+    if (!observerCheck.allowed) {
+      const sseError = `data: ${JSON.stringify({ event: 'Error', data: { message: observerCheck.message } })}\n\n`
       return new Response(sseError, {
         status: 200,
         headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' },

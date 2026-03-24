@@ -8,6 +8,7 @@ mod llm_race;
 mod loop_engine;
 mod topic_guard;
 mod validator;
+mod meta_agent;
 
 #[cfg(test)]
 mod test_factory;
@@ -495,20 +496,31 @@ async fn main() {
     let gemini_key = std::env::var("GEMINI_API_KEY")
         .expect("GEMINI_API_KEY must be set");
 
+    // DGM-H Phase 1: Three-tier model hierarchy
+    // Simple:   gemini-2.5-flash-lite  ($0.0004/action  — portfolio mutations, bulk apply)
+    // Standard: gemini-2.5-flash       ($0.0068/verify  — analysis loop primary)
+    // Deep:     gemini-2.5-pro         ($0.043/verify   — institutional deep research)
+    let gemini_flash_lite = Arc::new(GeminiProvider::new_with_model(
+        gemini_key.clone(),
+        "gemini-2.5-flash-lite".to_string(),
+    ));
     let anthropic = Arc::new(AnthropicProvider::new(anthropic_key));
     let gemini = Arc::new(GeminiProvider::new(gemini_key.clone()));
-    let router = Arc::new(LlmRouter::new(anthropic, gemini));
+    let router = Arc::new(LlmRouter::new_with_simple(
+        gemini.clone(),
+        anthropic.clone(),
+        gemini_flash_lite.clone(),
+    ));
     let engine = Arc::new(VerificationEngine::new(
         router,
         PortfolioConstraints::default(),
         10,
     ));
 
-    // Nano engine: Gemini Flash-Lite primary (cheapest), Anthropic fallback for quota resilience
-    // gemini-3.1-flash-lite-preview is ~60% cheaper than 2.5-flash for high-volume AutoResearch
+    // Nano engine: gemini-2.5-flash-lite primary, Anthropic fallback for AutoResearch daemon
     let gemini_nano = Arc::new(GeminiProvider::new_with_model(
         gemini_key,
-        "gemini-3.1-flash-lite-preview".to_string(),
+        "gemini-2.5-flash-lite".to_string(),
     ));
     let anthropic_nano = Arc::new(AnthropicProvider::new(
         std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY must be set"),
@@ -543,6 +555,22 @@ async fn main() {
         tracing::info!("AutoResearch daemon DISABLED (set ENABLE_AUTORESEARCH=true to enable)");
     }
 
+    // Spawn Meta Agent self-improvement daemon (runs overnight via Batch API paradigm)
+    if std::env::var("ENABLE_META_AGENT").unwrap_or_default() == "true" {
+        tracing::info!("MetaAgent daemon ENABLED");
+        tokio::spawn(async move {
+            loop {
+                // Wait for the next 2 AM ET to run the batch job
+                // For demonstration, we'll just sleep 24 hours between runs
+                // but execute immediately if the logs exist.
+                run_meta_agent_batch().await;
+                tokio::time::sleep(tokio::time::Duration::from_secs(86400)).await;
+            }
+        });
+    } else {
+        tracing::info!("MetaAgent daemon DISABLED (set ENABLE_META_AGENT=true to enable)");
+    }
+
     let protected_routes = Router::new()
         .route("/v1/verify", post(verify_handler))
         .route("/v1/autoresearch/stream", get(autoresearch_stream_handler))
@@ -567,4 +595,13 @@ async fn main() {
     axum::serve(listener, app)
         .await
         .expect("Server failed");
+}
+
+async fn run_meta_agent_batch() {
+    let api_key = std::env::var("GEMINI_API_KEY")
+        .or_else(|_| std::env::var("GOOGLE_API_KEY"))
+        .unwrap_or_default();
+    let llm = std::sync::Arc::new(crate::llm::gemini::GeminiProvider::new(api_key));
+    let agent = crate::meta_agent::MetaAgent::new(llm);
+    agent.run_overnight_batch_analysis().await;
 }

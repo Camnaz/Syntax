@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "cf:build": "NEXT_PUBLIC_SUPABASE_URL=https://zlxskwovmkidsezdxpzv.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpseHNrd292bWtpZHNlemR4cHp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDg2NzIsImV4cCI6MjA4ODkyNDY3Mn0.VYx6VTlNlY3FfDG2-4fzEpRWXnxwWUzo_dx4axdVEs0 NEXT_PUBLIC_SITE_URL=https://syntax.oleacomputer.com NEXT_PUBLIC_SYNTAX_API_URL=https://syntax-api.oleacomputer.com NEXT_PUBLIC_DEV_MODE=false opennextjs-cloudflare build",
+    "cf:build": "NEXT_PUBLIC_SUPABASE_URL=https://zlxskwovmkidsezdxpzv.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpseHNrd292bWtpZHNlemR4cHp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDg2NzIsImV4cCI6MjA4ODkyNDY3Mn0.VYx6VTlNlY3FfDG2-4fzEpRWXnxwWUzo_dx4axdVEs0 NEXT_PUBLIC_SITE_URL=https://syntax.oleacomputer.com NEXT_PUBLIC_SYNTAX_API_URL=https://syntax-api-production.up.railway.app NEXT_PUBLIC_DEV_MODE=false opennextjs-cloudflare build",
     "cf:preview": "npm run cf:build && opennextjs-cloudflare preview",
     "cf:deploy": "npm run cf:build && opennextjs-cloudflare deploy"
   },

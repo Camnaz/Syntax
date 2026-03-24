@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Shield, Mail, Lock, ArrowLeft } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import { Mail, Lock, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function AuthPage() {
@@ -58,10 +59,11 @@ export default function AuthPage() {
 
         router.push('/dashboard')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error)
       setMessage({
         type: 'error',
-        text: error.message || 'An error occurred',
+        text: errMsg || 'An error occurred',
       })
     } finally {
       setLoading(false)
@@ -69,26 +71,32 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen ambient-bg text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-olea-studio-grey text-olea-obsidian flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-8 transition-colors"
+          className="inline-flex items-center gap-2 text-zinc-500 hover:text-olea-obsidian mb-8 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to home
         </Link>
 
-        <div className="glass-panel rounded-xl p-8">
-          <div className="flex items-center gap-2 mb-6">
-            <Shield className="h-8 w-8 text-emerald-400" />
-            <h1 className="text-2xl font-bold">SYNTAX</h1>
+        <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-sm">
+          <div className="flex justify-center mb-10">
+            <Image 
+              src="/images/OleaSyntaxLogo2.svg" 
+              alt="Olea Syntax" 
+              width={200} 
+              height={50} 
+              className="h-12 w-auto"
+              priority
+            />
           </div>
 
-          <h2 className="text-3xl font-bold mb-2">
+          <h2 className="text-3xl font-bold mb-2 text-olea-obsidian">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
           </h2>
-          <p className="text-zinc-400 mb-8">
+          <p className="text-zinc-500 mb-8">
             {isSignUp
               ? 'Start with Observer tier (free)'
               : 'Sign in to your account'}
@@ -98,8 +106,8 @@ export default function AuthPage() {
             <div
               className={`mb-6 p-4 rounded-lg ${
                 message.type === 'error'
-                  ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-                  : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                  ? 'bg-red-50 border border-red-200 text-red-600'
+                  : 'bg-emerald-50 border border-emerald-200 text-olea-evergreen'
               }`}
             >
               {message.text}
@@ -108,31 +116,31 @@ export default function AuthPage() {
 
           <form onSubmit={handleAuth} noValidate className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
+              <label className="block text-sm font-medium mb-2 text-olea-obsidian">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 bg-olea-paper border border-zinc-200 rounded-lg focus:outline-none focus:border-olea-evergreen transition-colors text-olea-obsidian"
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
+              <label className="block text-sm font-medium mb-2 text-olea-obsidian">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 bg-olea-paper border border-zinc-200 rounded-lg focus:outline-none focus:border-olea-evergreen transition-colors text-olea-obsidian"
                   placeholder="••••••••"
                 />
               </div>
@@ -141,7 +149,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-all micro-glow"
+              className="w-full py-3 bg-olea-evergreen hover:bg-olea-obsidian text-olea-paper disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed rounded-lg font-bold transition-all shadow-sm"
             >
               {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
             </button>
@@ -153,7 +161,7 @@ export default function AuthPage() {
                 setIsSignUp(!isSignUp)
                 setMessage(null)
               }}
-              className="text-zinc-400 hover:text-white transition-colors"
+              className="text-zinc-500 hover:text-olea-obsidian transition-colors text-sm font-medium"
             >
               {isSignUp
                 ? 'Already have an account? Sign in'
