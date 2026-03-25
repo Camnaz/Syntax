@@ -555,6 +555,141 @@ export default function DashboardClient() {
       }
     }
 
+    // NLP cash withdrawal intercept — bypass verification loop for simple "remove/withdraw $X" messages
+    const removeAmountMatch = /\b(?:remove|withdraw|take\s+out|pull\s+out|reduce\s+cash)\b.*?\$\s*([\d,]+(?:\.\d{1,2})?)/i.exec(inquiry.trim())
+    const isRemoveFollowup = /^(?:yes|yeah|yep|sure|ok|okay|confirm|do\s+it|remove\s+(?:it|cash)|withdraw\s+(?:it|cash)|yes[\s,]+(?:remove|withdraw))/i.test(inquiry.trim()) &&
+      lastAssistantMsg?.content?.includes('remove cash')
+
+    if ((removeAmountMatch && !hasInvestmentTarget && !isQuestion) || isRemoveFollowup) {
+      let amount = 0
+      if (removeAmountMatch) {
+        amount = parseFloat(removeAmountMatch[1].replace(/,/g, ''))
+      } else if (isRemoveFollowup && lastAssistantMsg) {
+        const m = /\*\*\$([\d,.]+)\*\*/.exec(lastAssistantMsg.content)
+        if (m) amount = parseFloat(m[1].replace(/,/g, ''))
+      }
+
+      if (amount > 0 && amount <= 1_000_000) {
+        const hasCashKeyword = /\bcash\b/i.test(inquiry) || isRemoveFollowup
+        const userMsg = inquiry.trim()
+        setInquiry('')
+
+        let activeSessionId = currentSessionId
+        if (!activeSessionId) {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session) {
+            const { data: sd } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: userMsg.substring(0, 60) }).select().single()
+            if (sd) { activeSessionId = sd.id; setCurrentSessionId(sd.id); setSessions(prev => [{ id: sd.id, title: sd.title || 'Untitled', created_at: sd.created_at }, ...prev]) }
+          }
+        }
+        setChatHistory(prev => [...prev, { role: 'user', content: userMsg }])
+        if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'user', content: userMsg })
+
+        if (hasCashKeyword) {
+          const { data: portfolio } = await supabase.from('portfolios').select('available_cash').eq('id', portfolioId).single()
+          const currentCash = Number((portfolio as { available_cash?: number } | null)?.available_cash) || 0
+          if (currentCash >= amount) {
+            const newCash = Math.round((currentCash - amount) * 100) / 100
+            await supabase.from('portfolios').update({ available_cash: newCash }).eq('id', portfolioId)
+            const msg = `✅ Removed **$${amount.toFixed(2)}** cash from your portfolio. Available cash is now **$${newCash.toFixed(2)}**.`
+            setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+            if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+          } else {
+            const msg = `❌ Cannot remove $${amount.toFixed(2)} — you only have $${currentCash.toFixed(2)} available cash.`
+            setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+            if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+          }
+        } else {
+          const msg = `Did you mean remove **$${amount.toFixed(2)} cash** from your portfolio balance?\n\nReply **"yes, remove cash"** to confirm, or tell me what position you'd like to reduce.`
+          setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+          if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+        }
+        return
+      }
+    }
+
+    // NLP position reduction intercept — direct handling for "sell/reduce/trim X shares of TICKER"
+    const sellMatch = /\b(?:sell|reduce|trim|cut|decrease)\b\s*(\d+(?:\.\d+)?)\s*(?:shares?|)\s*(?:of\s+|in\s+|)?([A-Z]{1,5})\b/i.exec(inquiry.trim())
+    const sellAllMatch = /\b(?:sell|close|exit|liquidate)\b.*?\ball\s*(?:of\s+)?(?:my\s+)?([A-Z]{1,5})\b/i.exec(inquiry.trim())
+    const reduceToMatch = /\b(?:reduce|trim|cut)\b.*?([A-Z]{1,5})\b.*?\b(?:to|down\s+to)\s*(\d+(?:\.\d+)?)\s*(?:shares?|)/i.exec(inquiry.trim())
+
+    if ((sellMatch || sellAllMatch || reduceToMatch) && !isQuestion) {
+      let ticker = ''
+      let sharesToSell: number | null = null
+      let targetShares: number | null = null
+
+      if (sellAllMatch) {
+        ticker = sellAllMatch[1].toUpperCase()
+      } else if (reduceToMatch) {
+        ticker = reduceToMatch[1].toUpperCase()
+        targetShares = parseFloat(reduceToMatch[2])
+      } else if (sellMatch) {
+        ticker = (sellMatch[2] || '').toUpperCase()
+        sharesToSell = sellMatch[1] ? parseFloat(sellMatch[1]) : null
+      }
+
+      if (ticker && positionTickers.includes(ticker)) {
+        const userMsg = inquiry.trim()
+        setInquiry('')
+
+        let activeSessionId = currentSessionId
+        if (!activeSessionId) {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session) {
+            const { data: sd } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: userMsg.substring(0, 60) }).select().single()
+            if (sd) { activeSessionId = sd.id; setCurrentSessionId(sd.id); setSessions(prev => [{ id: sd.id, title: sd.title || 'Untitled', created_at: sd.created_at }, ...prev]) }
+          }
+        }
+        setChatHistory(prev => [...prev, { role: 'user', content: userMsg }])
+        if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'user', content: userMsg })
+
+        const { data: position } = await supabase.from('positions').select('shares').eq('portfolio_id', portfolioId).eq('ticker', ticker).single()
+        const currentShares = Number((position as { shares?: number } | null)?.shares) || 0
+
+        if (currentShares === 0) {
+          const msg = `❌ You don't have any ${ticker} shares to sell.`
+          setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+          if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+        } else if (sellAllMatch) {
+          await supabase.from('positions').delete().eq('portfolio_id', portfolioId).eq('ticker', ticker)
+          setPositionTickers(prev => prev.filter(t => t !== ticker))
+          const msg = `✅ Sold all **${currentShares} shares** of **${ticker}**. Position removed from portfolio.`
+          setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+          if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+        } else if (targetShares !== null && targetShares >= 0 && targetShares < currentShares) {
+          const newShares = Math.round(targetShares * 100) / 100
+          if (newShares === 0) {
+            await supabase.from('positions').delete().eq('portfolio_id', portfolioId).eq('ticker', ticker)
+            setPositionTickers(prev => prev.filter(t => t !== ticker))
+            const msg = `✅ Sold all **${currentShares} shares** of **${ticker}**. Position removed from portfolio.`
+            setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+            if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+          } else {
+            await supabase.from('positions').update({ shares: newShares }).eq('portfolio_id', portfolioId).eq('ticker', ticker)
+            const sold = Math.round((currentShares - newShares) * 100) / 100
+            const msg = `✅ Reduced **${ticker}** from ${currentShares} to ${newShares} shares (sold ${sold} shares).`
+            setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+            if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+          }
+        } else if (sharesToSell !== null && sharesToSell > 0) {
+          if (sharesToSell >= currentShares) {
+            await supabase.from('positions').delete().eq('portfolio_id', portfolioId).eq('ticker', ticker)
+            setPositionTickers(prev => prev.filter(t => t !== ticker))
+            const msg = `✅ Sold all **${currentShares} shares** of **${ticker}** (you requested ${sharesToSell}). Position removed from portfolio.`
+            setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+            if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+          } else {
+            const newShares = Math.round((currentShares - sharesToSell) * 100) / 100
+            await supabase.from('positions').update({ shares: newShares }).eq('portfolio_id', portfolioId).eq('ticker', ticker)
+            const msg = `✅ Sold **${sharesToSell} shares** of **${ticker}**. You now hold ${newShares} shares.`
+            setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+            if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+          }
+        }
+        return
+      }
+    }
+
     // Validate input before processing - reject garbage
     const validation = validateInput(inquiry)
     if (!validation.valid) {

@@ -222,6 +222,33 @@ async fn append_research_log(inquiry: &str, best_score: f64, best_attempt: usize
 fn is_simple_portfolio_action(inquiry: &str) -> bool {
     let lower = inquiry.to_lowercase();
 
+    // Cash withdrawal / removal patterns
+    let withdraw_patterns = [
+        "remove cash", "withdraw cash", "remove money", "withdraw money",
+        "take out cash", "pull out cash", "reduce cash", "yes, remove cash", "yes remove cash",
+    ];
+    if withdraw_patterns.iter().any(|p| lower.contains(p)) {
+        return true;
+    }
+    // "withdraw/remove $X" with no ticker context
+    let has_withdraw = lower.starts_with("withdraw") || lower.starts_with("remove $") || lower.starts_with("take out");
+    let has_ticker = inquiry.split_whitespace().any(|word| {
+        let clean = word.trim_matches(|c: char| !c.is_alphanumeric());
+        clean.len() >= 1 && clean.len() <= 5 && clean.chars().all(|c| c.is_ascii_uppercase())
+    });
+    if has_withdraw && !has_ticker {
+        return true;
+    }
+
+    // Position reduction / selling patterns
+    let sell_patterns = [
+        "sell all", "sell my", "close position", "exit position", "liquidate",
+        "reduce to", "trim position", "cut position", "decrease position",
+    ];
+    if sell_patterns.iter().any(|p| lower.contains(p)) {
+        return true;
+    }
+
     // Cash deposit / withdrawal commands — no analysis needed
     let cash_patterns = [
         "add cash", "deposit cash", "add money", "deposit money",
