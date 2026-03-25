@@ -505,10 +505,39 @@ export default function DashboardClient() {
       return
     }
 
+    // Helper: convert spelled-out numbers to digits (basic support for common amounts)
+    const parseSpelledNumber = (text: string): number | null => {
+      const spelledMap: Record<string, number> = {
+        one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+        eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,
+        twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+        hundred: 100, thousand: 1000, million: 1000000
+      }
+      const lower = text.toLowerCase()
+      // Try to match patterns like "one hundred", "fifty thousand", "twenty five", etc.
+      let total = 0
+      let current = 0
+      const words = lower.replace(/-/g, ' ').split(/\s+/)
+      for (const word of words) {
+        const val = spelledMap[word]
+        if (val === 100) {
+          current = current === 0 ? 100 : current * 100
+        } else if (val === 1000 || val === 1000000) {
+          current = current === 0 ? val : current * val
+          total += current
+          current = 0
+        } else if (val) {
+          current += val
+        }
+      }
+      total += current
+      return total > 0 ? total : null
+    }
+
     // NLP cash deposit intercept — bypass verification loop for simple "add/deposit $X" messages
-    // Relaxed patterns to catch conversational forms: "can you add $50", "i want to deposit $100", etc.
-    const cashAmountMatch = /(?:\b|^|\s)(?:add|deposit|put\s+in|contribute)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?))/i.exec(inquiry.trim()) ??
-      /(?:can\s+you|could\s+you|would\s+you|please|i\s+(?:want|would\s+like)\s+to)\s+(?:add|deposit|put\s+in|contribute)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?))/i.exec(inquiry.trim())
+    // Relaxed patterns to catch: "add $50", "add 50", "add fifty dollars", "can you add $50", etc.
+    const cashAmountMatch = /(?:\b|^|\s)(?:add|deposit|put\s+in|contribute)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|\b([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?)?|\b(one\s+hundred|two\s+hundred|three\s+hundred|four\s+hundred|five\s+hundred|six\s+hundred|seven\s+hundred|eight\s+hundred|nine\s+hundred|ten\s+hundred|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\s*(?:dollars?|bucks?)?)/i.exec(inquiry.trim()) ??
+      /(?:can\s+you|could\s+you|would\s+you|please|i\s+(?:want|would\s+like)\s+to)\s+(?:add|deposit|put\s+in|contribute)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|\b([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?)?|\b(one\s+hundred|two\s+hundred|three\s+hundred|four\s+hundred|five\s+hundred|six\s+hundred|seven\s+hundred|eight\s+hundred|nine\s+hundred|ten\s+hundred|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\s*(?:dollars?|bucks?)?)/i.exec(inquiry.trim())
     const hasInvestmentTarget = /\b(?:worth\s+of|into\s+[A-Z]|buy\b|invest\s+in|purchase\b)\b/i.test(inquiry.trim())
     // Relaxed question detection — "can you add..." is a request, not a question needing analysis
     const isRealQuestion = /^(?:what|how|why|when|where|which|who|should|is|are|do|does|did)\b/i.test(inquiry.trim()) &&
@@ -520,7 +549,15 @@ export default function DashboardClient() {
     if ((cashAmountMatch && !hasInvestmentTarget && !isRealQuestion) || isCashFollowup) {
       let amount = 0
       if (cashAmountMatch) {
-        amount = parseFloat(cashAmountMatch[1].replace(/,/g, ''))
+        // Check for digit match first (group 1 or 2), then spelled-out (group 3)
+        const digitMatch = cashAmountMatch[1] || cashAmountMatch[2]
+        const spelledMatch = cashAmountMatch[3]
+        if (digitMatch) {
+          amount = parseFloat(digitMatch.replace(/,/g, ''))
+        } else if (spelledMatch) {
+          const parsed = parseSpelledNumber(spelledMatch)
+          if (parsed) amount = parsed
+        }
       } else if (isCashFollowup && lastAssistantMsg) {
         const m = /\*\*\$([\d,.]+)\*\*/.exec(lastAssistantMsg.content)
         if (m) amount = parseFloat(m[1].replace(/,/g, ''))
@@ -560,16 +597,24 @@ export default function DashboardClient() {
     }
 
     // NLP cash withdrawal intercept — bypass verification loop for simple "remove/withdraw $X" messages
-    // Relaxed patterns for conversational forms: "can you remove $50", "i want to take out $100"
-    const removeAmountMatch = /(?:\b|^|\s)(?:remove|withdraw|take\s+out|pull\s+out|reduce\s+cash)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?))/i.exec(inquiry.trim()) ??
-      /(?:can\s+you|could\s+you|would\s+you|please|i\s+(?:want|would\s+like)\s+to)\s+(?:remove|withdraw|take\s+out|pull\s+out)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?))/i.exec(inquiry.trim())
+    // Relaxed patterns to catch: "remove $50", "remove 50", "remove fifty dollars", "can you remove $50", etc.
+    const removeAmountMatch = /(?:\b|^|\s)(?:remove|withdraw|take\s+out|pull\s+out|reduce\s+cash)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|\b([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?)?|\b(one\s+hundred|two\s+hundred|three\s+hundred|four\s+hundred|five\s+hundred|six\s+hundred|seven\s+hundred|eight\s+hundred|nine\s+hundred|ten\s+hundred|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\s*(?:dollars?|bucks?)?)/i.exec(inquiry.trim()) ??
+      /(?:can\s+you|could\s+you|would\s+you|please|i\s+(?:want|would\s+like)\s+to)\s+(?:remove|withdraw|take\s+out|pull\s+out)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|\b([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?)?|\b(one\s+hundred|two\s+hundred|three\s+hundred|four\s+hundred|five\s+hundred|six\s+hundred|seven\s+hundred|eight\s+hundred|nine\s+hundred|ten\s+hundred|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\s*(?:dollars?|bucks?)?)/i.exec(inquiry.trim())
     const isRemoveFollowup = /^(?:yes|yeah|yep|sure|ok|okay|confirm|do\s+it|remove\s+(?:it|cash)|withdraw\s+(?:it|cash)|yes[\s,]+(?:remove|withdraw))/i.test(inquiry.trim()) &&
       lastAssistantMsg?.content?.includes('remove cash')
 
     if ((removeAmountMatch && !hasInvestmentTarget && !isRealQuestion) || isRemoveFollowup) {
       let amount = 0
       if (removeAmountMatch) {
-        amount = parseFloat(removeAmountMatch[1].replace(/,/g, ''))
+        // Check for digit match first (group 1 or 2), then spelled-out (group 3)
+        const digitMatch = removeAmountMatch[1] || removeAmountMatch[2]
+        const spelledMatch = removeAmountMatch[3]
+        if (digitMatch) {
+          amount = parseFloat(digitMatch.replace(/,/g, ''))
+        } else if (spelledMatch) {
+          const parsed = parseSpelledNumber(spelledMatch)
+          if (parsed) amount = parsed
+        }
       } else if (isRemoveFollowup && lastAssistantMsg) {
         const m = /\*\*\$([\d,.]+)\*\*/.exec(lastAssistantMsg.content)
         if (m) amount = parseFloat(m[1].replace(/,/g, ''))
