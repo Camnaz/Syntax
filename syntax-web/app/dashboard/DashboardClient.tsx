@@ -505,6 +505,56 @@ export default function DashboardClient() {
       return
     }
 
+    // NLP cash deposit intercept — bypass verification loop for simple "add/deposit $X" messages
+    const cashAmountMatch = /\b(?:add|deposit|put\s+in|contribute)\b.*?\$\s*([\d,]+(?:\.\d{1,2})?)/i.exec(inquiry.trim())
+    const hasInvestmentTarget = /\b(?:worth\s+of|into\s+[A-Z]|buy\b|invest\s+in|purchase\b)\b/i.test(inquiry.trim())
+    const isQuestion = /^(?:what|how|why|when|where|which|who|should|can|could|would|is|are|do|does|did)/i.test(inquiry.trim())
+    const lastAssistantMsg = [...chatHistory].reverse().find(m => m.role === 'assistant')
+    const isCashFollowup = /^(?:yes|yeah|yep|sure|ok|okay|confirm|do\s+it|add\s+(?:it|cash)|yes[\s,]+add)/i.test(inquiry.trim()) &&
+      lastAssistantMsg?.content?.includes('add cash')
+
+    if ((cashAmountMatch && !hasInvestmentTarget && !isQuestion) || isCashFollowup) {
+      let amount = 0
+      if (cashAmountMatch) {
+        amount = parseFloat(cashAmountMatch[1].replace(/,/g, ''))
+      } else if (isCashFollowup && lastAssistantMsg) {
+        const m = /\*\*\$([\d,.]+)\*\*/.exec(lastAssistantMsg.content)
+        if (m) amount = parseFloat(m[1].replace(/,/g, ''))
+      }
+
+      if (amount > 0 && amount <= 1_000_000) {
+        const hasCashKeyword = /\bcash\b/i.test(inquiry) || isCashFollowup
+        const userMsg = inquiry.trim()
+        setInquiry('')
+
+        let activeSessionId = currentSessionId
+        if (!activeSessionId) {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session) {
+            const { data: sd } = await supabase.from('chat_sessions').insert({ user_id: user.id, title: userMsg.substring(0, 60) }).select().single()
+            if (sd) { activeSessionId = sd.id; setCurrentSessionId(sd.id); setSessions(prev => [{ id: sd.id, title: sd.title || 'Untitled', created_at: sd.created_at }, ...prev]) }
+          }
+        }
+        setChatHistory(prev => [...prev, { role: 'user', content: userMsg }])
+        if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'user', content: userMsg })
+
+        if (hasCashKeyword) {
+          const { data: portfolio } = await supabase.from('portfolios').select('available_cash').eq('id', portfolioId).single()
+          const currentCash = Number((portfolio as { available_cash?: number } | null)?.available_cash) || 0
+          const newCash = Math.round((currentCash + amount) * 100) / 100
+          await supabase.from('portfolios').update({ available_cash: newCash }).eq('id', portfolioId)
+          const msg = `✅ Added **$${amount.toFixed(2)}** cash to your portfolio. Available cash is now **$${newCash.toFixed(2)}**.`
+          setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+          if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+        } else {
+          const msg = `Did you mean add **$${amount.toFixed(2)} cash** to your portfolio balance?\n\nReply **"yes, add cash"** to confirm, or tell me what you'd like to invest the $${amount.toFixed(2)} in.`
+          setChatHistory(prev => [...prev, { role: 'assistant', content: msg }])
+          if (activeSessionId) await supabase.from('chat_messages').insert({ session_id: activeSessionId, role: 'assistant', content: msg })
+        }
+        return
+      }
+    }
+
     // Validate input before processing - reject garbage
     const validation = validateInput(inquiry)
     if (!validation.valid) {

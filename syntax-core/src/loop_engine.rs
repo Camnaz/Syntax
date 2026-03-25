@@ -222,6 +222,25 @@ async fn append_research_log(inquiry: &str, best_score: f64, best_attempt: usize
 fn is_simple_portfolio_action(inquiry: &str) -> bool {
     let lower = inquiry.to_lowercase();
 
+    // Cash deposit / withdrawal commands — no analysis needed
+    let cash_patterns = [
+        "add cash", "deposit cash", "add money", "deposit money",
+        "add funds", "deposit funds", "add to cash", "add to balance",
+        "yes, add cash", "yes add cash",
+    ];
+    if cash_patterns.iter().any(|p| lower.contains(p)) {
+        return true;
+    }
+    // "deposit $X" with no ticker context
+    let has_deposit = lower.starts_with("deposit") || lower.starts_with("add $");
+    let has_ticker = inquiry.split_whitespace().any(|word| {
+        let clean = word.trim_matches(|c: char| !c.is_alphanumeric());
+        clean.len() >= 1 && clean.len() <= 5 && clean.chars().all(|c| c.is_ascii_uppercase())
+    });
+    if has_deposit && !has_ticker {
+        return true;
+    }
+
     // Bulk allocation confirmation phrases — user applying a previously verified allocation
     let bulk_patterns = [
         "add those", "add them", "add all", "apply these", "apply those", "apply them",
