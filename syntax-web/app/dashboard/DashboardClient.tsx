@@ -506,14 +506,18 @@ export default function DashboardClient() {
     }
 
     // NLP cash deposit intercept — bypass verification loop for simple "add/deposit $X" messages
-    const cashAmountMatch = /\b(?:add|deposit|put\s+in|contribute)\b.*?\$\s*([\d,]+(?:\.\d{1,2})?)/i.exec(inquiry.trim())
+    // Relaxed patterns to catch conversational forms: "can you add $50", "i want to deposit $100", etc.
+    const cashAmountMatch = /(?:\b|^|\s)(?:add|deposit|put\s+in|contribute)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?))/i.exec(inquiry.trim()) ??
+      /(?:can\s+you|could\s+you|would\s+you|please|i\s+(?:want|would\s+like)\s+to)\s+(?:add|deposit|put\s+in|contribute)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?))/i.exec(inquiry.trim())
     const hasInvestmentTarget = /\b(?:worth\s+of|into\s+[A-Z]|buy\b|invest\s+in|purchase\b)\b/i.test(inquiry.trim())
-    const isQuestion = /^(?:what|how|why|when|where|which|who|should|can|could|would|is|are|do|does|did)/i.test(inquiry.trim())
+    // Relaxed question detection — "can you add..." is a request, not a question needing analysis
+    const isRealQuestion = /^(?:what|how|why|when|where|which|who|should|is|are|do|does|did)\b/i.test(inquiry.trim()) &&
+      !/\b(?:add|deposit|remove|withdraw|sell|buy)\b/i.test(inquiry.trim())
     const lastAssistantMsg = [...chatHistory].reverse().find(m => m.role === 'assistant')
     const isCashFollowup = /^(?:yes|yeah|yep|sure|ok|okay|confirm|do\s+it|add\s+(?:it|cash)|yes[\s,]+add)/i.test(inquiry.trim()) &&
       lastAssistantMsg?.content?.includes('add cash')
 
-    if ((cashAmountMatch && !hasInvestmentTarget && !isQuestion) || isCashFollowup) {
+    if ((cashAmountMatch && !hasInvestmentTarget && !isRealQuestion) || isCashFollowup) {
       let amount = 0
       if (cashAmountMatch) {
         amount = parseFloat(cashAmountMatch[1].replace(/,/g, ''))
@@ -523,7 +527,7 @@ export default function DashboardClient() {
       }
 
       if (amount > 0 && amount <= 1_000_000) {
-        const hasCashKeyword = /\bcash\b/i.test(inquiry) || isCashFollowup
+        const hasCashKeyword = /\bcash\b/i.test(inquiry) || /\bto\s+(?:my\s+)?portfolio\b/i.test(inquiry) || isCashFollowup
         const userMsg = inquiry.trim()
         setInquiry('')
 
@@ -556,11 +560,13 @@ export default function DashboardClient() {
     }
 
     // NLP cash withdrawal intercept — bypass verification loop for simple "remove/withdraw $X" messages
-    const removeAmountMatch = /\b(?:remove|withdraw|take\s+out|pull\s+out|reduce\s+cash)\b.*?\$\s*([\d,]+(?:\.\d{1,2})?)/i.exec(inquiry.trim())
+    // Relaxed patterns for conversational forms: "can you remove $50", "i want to take out $100"
+    const removeAmountMatch = /(?:\b|^|\s)(?:remove|withdraw|take\s+out|pull\s+out|reduce\s+cash)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?))/i.exec(inquiry.trim()) ??
+      /(?:can\s+you|could\s+you|would\s+you|please|i\s+(?:want|would\s+like)\s+to)\s+(?:remove|withdraw|take\s+out|pull\s+out)\b.*?(?:\$\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?))/i.exec(inquiry.trim())
     const isRemoveFollowup = /^(?:yes|yeah|yep|sure|ok|okay|confirm|do\s+it|remove\s+(?:it|cash)|withdraw\s+(?:it|cash)|yes[\s,]+(?:remove|withdraw))/i.test(inquiry.trim()) &&
       lastAssistantMsg?.content?.includes('remove cash')
 
-    if ((removeAmountMatch && !hasInvestmentTarget && !isQuestion) || isRemoveFollowup) {
+    if ((removeAmountMatch && !hasInvestmentTarget && !isRealQuestion) || isRemoveFollowup) {
       let amount = 0
       if (removeAmountMatch) {
         amount = parseFloat(removeAmountMatch[1].replace(/,/g, ''))
@@ -570,7 +576,7 @@ export default function DashboardClient() {
       }
 
       if (amount > 0 && amount <= 1_000_000) {
-        const hasCashKeyword = /\bcash\b/i.test(inquiry) || isRemoveFollowup
+        const hasCashKeyword = /\bcash\b/i.test(inquiry) || /\bfrom\s+(?:my\s+)?portfolio\b/i.test(inquiry) || isRemoveFollowup
         const userMsg = inquiry.trim()
         setInquiry('')
 
@@ -609,11 +615,15 @@ export default function DashboardClient() {
     }
 
     // NLP position reduction intercept — direct handling for "sell/reduce/trim X shares of TICKER"
-    const sellMatch = /\b(?:sell|reduce|trim|cut|decrease)\b\s*(\d+(?:\.\d+)?)\s*(?:shares?|)\s*(?:of\s+|in\s+|)?([A-Z]{1,5})\b/i.exec(inquiry.trim())
-    const sellAllMatch = /\b(?:sell|close|exit|liquidate)\b.*?\ball\s*(?:of\s+)?(?:my\s+)?([A-Z]{1,5})\b/i.exec(inquiry.trim())
-    const reduceToMatch = /\b(?:reduce|trim|cut)\b.*?([A-Z]{1,5})\b.*?\b(?:to|down\s+to)\s*(\d+(?:\.\d+)?)\s*(?:shares?|)/i.exec(inquiry.trim())
+    // Relaxed patterns for conversational forms: "can you sell 10 shares of AAPL", "i want to sell all my TSLA"
+    const sellMatch = /(?:\b|^|\s)(?:sell|reduce|trim|cut|decrease)\b\s*(\d+(?:\.\d+)?)?\s*(?:shares?|)\s*(?:of\s+|in\s+|)?([A-Z]{1,5})\b/i.exec(inquiry.trim()) ??
+      /(?:can\s+you|could\s+you|would\s+you|please|i\s+(?:want|would\s+like)\s+to)\s+(?:sell|reduce|trim|cut)\b.*?([A-Z]{1,5})\b.*?((?:\d+(?:\.\d+)?)\s*(?:shares?|))?/i.exec(inquiry.trim())
+    const sellAllMatch = /(?:\b|^|\s)(?:sell|close|exit|liquidate)\b.*?\ball\s*(?:of\s+)?(?:my\s+)?([A-Z]{1,5})\b/i.exec(inquiry.trim()) ??
+      /(?:can\s+you|could\s+you|would\s+you|please|i\s+(?:want|would\s+like)\s+to)\s+(?:sell|close|exit|liquidate)\b.*?\ball\s*(?:of\s+)?(?:my\s+)?([A-Z]{1,5})\b/i.exec(inquiry.trim())
+    const reduceToMatch = /(?:\b|^|\s)(?:reduce|trim|cut)\b.*?([A-Z]{1,5})\b.*?\b(?:to|down\s+to)\s*(\d+(?:\.\d+)?)\s*(?:shares?|)/i.exec(inquiry.trim()) ??
+      /(?:can\s+you|could\s+you|would\s+you|please)\s+(?:reduce|trim|cut)\b.*?([A-Z]{1,5})\b.*?\b(?:to|down\s+to)\s*(\d+(?:\.\d+)?)\s*(?:shares?|)/i.exec(inquiry.trim())
 
-    if ((sellMatch || sellAllMatch || reduceToMatch) && !isQuestion) {
+    if ((sellMatch || sellAllMatch || reduceToMatch) && !isRealQuestion) {
       let ticker = ''
       let sharesToSell: number | null = null
       let targetShares: number | null = null
